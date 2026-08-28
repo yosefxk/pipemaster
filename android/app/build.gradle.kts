@@ -7,24 +7,40 @@ android {
     namespace = "com.pipemaster.game"
     compileSdk = 34
 
+    val buildNumber = System.getenv("BUILD_NUMBER")?.toIntOrNull() ?: 1
+
     defaultConfig {
         applicationId = "com.pipemaster.game"
         minSdk = 24
         targetSdk = 34
-        versionCode = (System.getenv("BUILD_NUMBER") ?: "1").toInt()
-        versionName = "1.0.${System.getenv("BUILD_NUMBER") ?: "0"}"
+        versionCode = buildNumber
+        versionName = "1.0.$buildNumber"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("pipemaster-signing-key.jks")
+            storePassword = "volleyball123"
+            keyAlias = "scoreboard"
+            keyPassword = "volleyball123"
+            enableV1Signing = true
+            enableV2Signing = true
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("release")
+        }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {

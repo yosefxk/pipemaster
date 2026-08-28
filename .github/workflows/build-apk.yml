@@ -33,19 +33,20 @@ jobs:
         with:
           gradle-version: '8.4'
 
-      - name: Build Android APK
+      - name: Build Signed APK
         env:
           BUILD_NUMBER: ${{ github.run_number }}
         run: |
           cd android
+          gradle wrapper --gradle-version 8.4
           chmod +x ./gradlew
           ./gradlew assembleRelease --stacktrace
 
-      - name: Prepare APK Output
+      - name: Prepare Single APK Output
         id: prep
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release-unsigned.apk dist/pipemaster.apk 2>/dev/null || cp android/app/build/outputs/apk/release/app-release.apk dist/pipemaster.apk || cp android/app/build/outputs/apk/debug/app-debug.apk dist/pipemaster.apk
+          cp android/app/build/outputs/apk/release/app-release.apk dist/pipemaster.apk
           ls -la dist/
 
       - name: Upload APK Artifact
