@@ -1,0 +1,73 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Sync Web Assets to Android App
+        run: |
+          mkdir -p android/app/src/main/assets
+          cp -r index.html manifest.json sw.js css js icons android/app/src/main/assets/
+          ls -la android/app/src/main/assets/
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.4'
+
+      - name: Build Android APK
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleRelease --stacktrace
+
+      - name: Prepare APK Output
+        id: prep
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk dist/pipemaster.apk 2>/dev/null || cp android/app/build/outputs/apk/release/app-release.apk dist/pipemaster.apk || cp android/app/build/outputs/apk/debug/app-debug.apk dist/pipemaster.apk
+          ls -la dist/
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipemaster-apk
+          path: dist/pipemaster.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: "PipeMaster (v1.0.${{ github.run_number }})"
+          body: |
+            ### 🧩 PipeMaster (v1.0.${{ github.run_number }})
+            
+            - **Mobile-First & 100% Offline**: Zero internet required.
+            - **Solvable Spanning Tree Generation**: Supports Easy, Medium, Hard, Master difficulties.
+            - **Custom Dimensions & Torus Wrap-Around**: Toggle cross-border flow over edges.
+            - **Live Timer & Smart Hints**: Solve and lock tiles seamlessly.
+            - **Procedural Sound FX & Haptics**: Rich tactile feedback.
+          files: dist/pipemaster.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

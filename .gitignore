@@ -1,0 +1,16 @@
+# Gradle & Android
+.gradle/
+build/
+android/.gradle/
+android/app/build/
+android/local.properties
+android/*.iml
+android/.idea/
+dist/
+*.apk
+*.aab
+
+# OS & Logs
+.DS_Store
+*.log
+node_modules/

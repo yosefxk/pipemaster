@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>PipeMaster</title>
+    <meta name="theme-color" content="#10151d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="theme-minimal-dark">
+
+<div id="app-container">
+
+    <!-- ====================================================================
+         1. MAIN MENU SCREEN
+         ==================================================================== -->
+    <div id="screen-menu" class="app-screen active">
+        <div class="menu-content">
+            <div class="logo-header">
+                <div class="logo-icon-wrap">
+                    <svg viewBox="0 0 100 100" width="48" height="48">
+                        <circle cx="50" cy="50" r="22" fill="currentColor" opacity="0.9"/>
+                        <circle cx="50" cy="50" r="9" fill="var(--bg-surface)"/>
+                        <path d="M 34 50 L 0 50 M 66 50 L 100 50 M 50 34 L 50 0" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h1 class="app-title">PipeMaster</h1>
+                <p class="app-subtitle">Rotate the conduits & connect the flow</p>
+            </div>
+
+            <div class="menu-btn-group">
+                <button id="btn-quick-play" class="btn-menu-primary">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                    Quick Play
+                </button>
+
+                <button id="btn-custom-play" class="btn-menu-secondary">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                    Custom Game
+                </button>
+
+                <button id="btn-menu-settings" class="btn-menu-secondary">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    Settings
+                </button>
+
+                <button id="btn-how-to-play" class="btn-menu-secondary">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    How to Play
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         2. IN-GAME SCREEN (Matching Inspiration Screenshot)
+         ==================================================================== -->
+    <div id="screen-game" class="app-screen">
+        <!-- Top Navigation Header -->
+        <header class="game-header">
+            <div class="header-left">
+                <button id="btn-back-menu" class="icon-btn" aria-label="Back">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="level-title" class="header-center">Pipes 6x6</div>
+
+            <div class="header-right">
+                <button id="btn-game-help" class="icon-btn" aria-label="Help">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        <path d="M9.09 8a2.5 2.5 0 0 1 4.9 1c0 1.5-2 2-2 2"/>
+                        <line x1="12" y1="14" x2="12.01" y2="14"/>
+                    </svg>
+                </button>
+                <button id="btn-game-settings" class="icon-btn" aria-label="Settings">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </button>
+                <button id="btn-next-level-top" class="icon-btn" aria-label="Skip Level">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <path d="M13 17l5-5-5-5M6 17l5-5-5-5"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Big Monospace Timer Display -->
+        <div class="timer-container">
+            <span id="game-timer" class="timer-display">00:00</span>
+        </div>
+
+        <!-- Centered Pipes Grid Board -->
+        <div class="board-wrapper">
+            <div id="board-container" class="pipes-grid"></div>
+        </div>
+
+        <!-- Bottom Controls & Floating Action Button -->
+        <div class="game-bottom-bar">
+            <!-- Magic Wand Hint FAB (Screenshot accurate) -->
+            <button id="btn-hint" class="fab-hint-btn" aria-label="Hint">
+                <span id="hint-badge" class="hint-badge-counter">50</span>
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m19 11-8-8-8.5 8.5a2.12 2.12 0 0 0 3 3L14 6l1 1-8.5 8.5a2.12 2.12 0 0 0 3 3L18 10"/>
+                    <path d="m19 2 2 2M15 2l-1 2M22 6l-2-1M2 18l2 2M6 22l-1-2M2 22l4-4"/>
+                </svg>
+            </button>
+
+            <!-- Secondary Toolbar -->
+            <div class="game-sub-toolbar">
+                <button id="btn-undo" class="btn-tool">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <path d="M3 7v6h6"/>
+                        <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
+                    </svg>
+                    Undo
+                </button>
+                <button id="btn-restart" class="btn-tool">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                    </svg>
+                    Restart
+                </button>
+                <button id="btn-mute" class="btn-tool">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                    </svg>
+                    Sound
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         3. CUSTOM GAME MODAL
+         ==================================================================== -->
+    <div id="modal-custom" class="modal-overlay">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h2 class="modal-title">Custom Game</h2>
+                <button class="icon-btn btn-close-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <div class="form-label">
+                        <span>Rows</span>
+                        <span id="custom-rows-val">6</span>
+                    </div>
+                    <input id="custom-rows" class="range-slider" type="range" min="3" max="12" value="6">
+                </div>
+
+                <div class="form-group">
+                    <div class="form-label">
+                        <span>Columns</span>
+                        <span id="custom-cols-val">6</span>
+                    </div>
+                    <input id="custom-cols" class="range-slider" type="range" min="3" max="12" value="6">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Difficulty</label>
+                    <select id="custom-diff" class="form-select">
+                        <option value="easy">Easy (Relaxed Curves)</option>
+                        <option value="medium" selected>Medium (Standard Network)</option>
+                        <option value="hard">Hard (Dense Loops & Tees)</option>
+                        <option value="master">Master (Complex Intersections)</option>
+                    </select>
+                </div>
+
+                <div class="toggle-switch-wrap">
+                    <div class="toggle-label-desc">
+                        <span class="form-label">Wrap-Around Edges</span>
+                        <span class="toggle-subtext">Pipes flow across opposite screen borders</span>
+                    </div>
+                    <label class="switch">
+                        <input id="custom-wrap" type="checkbox">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <button id="btn-start-custom" class="btn-menu-primary" style="margin-top: 10px;">
+                    Start Game
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         4. SETTINGS MODAL
+         ==================================================================== -->
+    <div id="modal-settings" class="modal-overlay">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h2 class="modal-title">Settings</h2>
+                <button class="icon-btn btn-close-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Default Difficulty</label>
+                    <select id="setting-difficulty" class="form-select">
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                        <option value="master">Master</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Default Grid Size</label>
+                    <select id="setting-size" class="form-select">
+                        <option value="4">4 x 4 (Quick)</option>
+                        <option value="5">5 x 5</option>
+                        <option value="6">6 x 6 (Standard)</option>
+                        <option value="7">7 x 7</option>
+                        <option value="8">8 x 8 (Challenging)</option>
+                        <option value="10">10 x 10 (Expert)</option>
+                    </select>
+                </div>
+
+                <div class="toggle-switch-wrap">
+                    <div class="toggle-label-desc">
+                        <span class="form-label">Wrap-Around Edges (Torus)</span>
+                        <span class="toggle-subtext">Enable cross-border pipe connections</span>
+                    </div>
+                    <label class="switch">
+                        <input id="setting-wrap" type="checkbox">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Visual Theme</label>
+                    <select id="setting-theme" class="form-select">
+                        <option value="minimal-dark">Minimal Dark (Default)</option>
+                        <option value="cyber-neon">Cyber Neon Conduit</option>
+                        <option value="blueprint">Architect Blueprint</option>
+                        <option value="zen-slate">Zen Garden Slate</option>
+                    </select>
+                </div>
+
+                <div class="toggle-switch-wrap">
+                    <div class="toggle-label-desc">
+                        <span class="form-label">Sound Effects</span>
+                        <span class="toggle-subtext">Mechanical clicks & water surges</span>
+                    </div>
+                    <label class="switch">
+                        <input id="setting-sound" type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="toggle-switch-wrap">
+                    <div class="toggle-label-desc">
+                        <span class="form-label">Haptic Vibration</span>
+                        <span class="toggle-subtext">Tactile feedback on tile rotation</span>
+                    </div>
+                    <label class="switch">
+                        <input id="setting-haptics" type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         5. LEVEL WON MODAL
+         ==================================================================== -->
+    <div id="modal-win" class="modal-overlay">
+        <div class="modal-dialog win-card">
+            <h2 class="modal-title" style="font-size: 1.5rem;">Level Cleared! 🎉</h2>
+            <div id="win-stars" class="win-stars">★★★</div>
+
+            <div class="win-stats-grid">
+                <div class="win-stat-box">
+                    <span id="win-time" class="win-stat-val">00:24</span>
+                    <span class="win-stat-lbl">Time</span>
+                </div>
+                <div class="win-stat-box">
+                    <span id="win-hints" class="win-stat-val">0</span>
+                    <span class="win-stat-lbl">Hints</span>
+                </div>
+                <div class="win-stat-box">
+                    <span id="win-moves" class="win-stat-val">18</span>
+                    <span class="win-stat-lbl">Moves</span>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button id="btn-win-next" class="btn-menu-primary">
+                    Next Level →
+                </button>
+                <div style="display: flex; gap: 10px;">
+                    <button id="btn-win-restart" class="btn-menu-secondary" style="flex: 1;">
+                        Replay
+                    </button>
+                    <button id="btn-win-menu" class="btn-menu-secondary" style="flex: 1;">
+                        Menu
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         6. HOW TO PLAY / TUTORIAL MODAL
+         ==================================================================== -->
+    <div id="modal-help" class="modal-overlay">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h2 class="modal-title">How to Play</h2>
+                <button class="icon-btn btn-close-modal">✕</button>
+            </div>
+            <div class="modal-body" style="font-size: 0.92rem; line-height: 1.5; color: var(--text-secondary);">
+                <p>💧 <strong>Goal:</strong> Rotate the pipes until every piece connects back to the central source hub and the liquid flows through all conduits.</p>
+                <p>🔄 <strong>Rotate:</strong> Tap any tile to rotate it 90° clockwise. Right-click or long-press rotates counter-clockwise.</p>
+                <p>✨ <strong>Magic Hint:</strong> Tap the wand button at the bottom to solve and lock a tricky tile.</p>
+                <p>🌐 <strong>Wrap-Around Mode:</strong> When enabled, pipes exiting the screen on one edge flow seamlessly into the opposite border.</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Application Scripts -->
+<script src="js/engine.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/render.js"></script>
+<script src="js/app.js"></script>
+<script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+</script>
+</body>
+</html>

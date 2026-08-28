@@ -1,0 +1,703 @@
+/* ==========================================================================
+   Pipes Puzzle Mobile-First Stylesheet
+   Inspired by Minimalist Dark & Neon Tube Aesthetics
+   ========================================================================== */
+
+:root {
+    --bg-primary: #10151d;
+    --bg-surface: #171f2b;
+    --bg-card: #1f2a3a;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --accent-color: #38bdf8;
+    --accent-hover: #0ea5e9;
+    --source-hub-color: #c4b5fd;
+    --pipe-stroke: #8694a6;
+    --pipe-fill: transparent;
+    --pipe-flow-stroke: #38bdf8;
+    --pipe-flow-glow: rgba(56, 189, 248, 0.45);
+    --border-color: #2e3c51;
+    --danger-color: #f43f5e;
+    --star-gold: #fbbf24;
+    --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "SF Mono", "Roboto Mono", Consolas, Menlo, monospace;
+}
+
+/* Theme Variations */
+body.theme-cyber-neon {
+    --bg-primary: #090a0f;
+    --bg-surface: #11131f;
+    --bg-card: #1a1d2e;
+    --text-primary: #00f0ff;
+    --text-secondary: #b8c1ec;
+    --pipe-stroke: #475569;
+    --pipe-flow-stroke: #00f0ff;
+    --pipe-flow-glow: rgba(0, 240, 255, 0.6);
+    --source-hub-color: #f72585;
+    --accent-color: #00f0ff;
+}
+
+body.theme-blueprint {
+    --bg-primary: #0a192f;
+    --bg-surface: #112240;
+    --bg-card: #1d3356;
+    --text-primary: #e6f1ff;
+    --text-secondary: #8892b0;
+    --pipe-stroke: #4c668c;
+    --pipe-flow-stroke: #64ffda;
+    --pipe-flow-glow: rgba(100, 255, 218, 0.5);
+    --source-hub-color: #ffd166;
+    --accent-color: #64ffda;
+}
+
+body.theme-zen-slate {
+    --bg-primary: #181a1b;
+    --bg-surface: #222527;
+    --bg-card: #2c3033;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --pipe-stroke: #78716c;
+    --pipe-flow-stroke: #10b981;
+    --pipe-flow-glow: rgba(16, 185, 129, 0.5);
+    --source-hub-color: #f59e0b;
+    --accent-color: #10b981;
+}
+
+/* Base Reset & Mobile Screen Locking */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-stack);
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+#app-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Screen Management */
+.app-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.98);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 1;
+}
+
+.app-screen.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: scale(1);
+    z-index: 10;
+}
+
+/* ==========================================================================
+   1. MAIN MENU SCREEN
+   ========================================================================== */
+
+#screen-menu {
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    background: radial-gradient(circle at 50% 30%, var(--bg-surface) 0%, var(--bg-primary) 75%);
+}
+
+.menu-content {
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+}
+
+.logo-header {
+    text-align: center;
+}
+
+.logo-icon-wrap {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 16px auto;
+    background: var(--bg-surface);
+    border: 2px solid var(--border-color);
+    border-radius: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    color: var(--accent-color);
+    animation: floatIcon 3s ease-in-out infinite alternate;
+}
+
+@keyframes floatIcon {
+    0% { transform: translateY(0px) rotate(0deg); }
+    100% { transform: translateY(-6px) rotate(4deg); }
+}
+
+.app-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #ffffff 0%, var(--text-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.app-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.menu-btn-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.btn-menu-primary {
+    width: 100%;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-hover) 100%);
+    color: #0b111a;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 8px 20px rgba(56, 189, 248, 0.3);
+    transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.btn-menu-primary:active {
+    transform: scale(0.97);
+    filter: brightness(0.9);
+}
+
+.btn-menu-secondary {
+    width: 100%;
+    padding: 15px 20px;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 600;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.btn-menu-secondary:active {
+    transform: scale(0.97);
+    background: var(--bg-card);
+}
+
+/* ==========================================================================
+   2. GAME SCREEN & HUD (Screenshot Accuracy)
+   ========================================================================== */
+
+#screen-game {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 20px) 16px;
+}
+
+/* Header matching Screenshot 1 */
+.game-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    width: 100%;
+    padding: 0 4px;
+}
+
+.header-left, .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-center {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+}
+
+.icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.icon-btn:active {
+    background: var(--bg-surface);
+    color: var(--text-primary);
+}
+
+/* Big Monospace Timer */
+.timer-container {
+    text-align: center;
+    margin: 8px 0;
+}
+
+.timer-display {
+    font-family: var(--font-mono);
+    font-size: 2.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 1px;
+}
+
+/* Board Center Wrapper */
+.board-wrapper {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-height: calc(100vh - 220px);
+    max-height: calc(100dvh - 220px);
+    overflow: hidden;
+}
+
+.pipes-grid {
+    display: grid;
+    gap: 0px;
+    width: 100%;
+    max-width: min(88vw, 480px);
+    aspect-ratio: var(--grid-cols) / var(--grid-rows);
+    max-height: 100%;
+    margin: auto;
+    position: relative;
+    border-radius: 12px;
+    background: rgba(16, 21, 29, 0.4);
+}
+
+/* Pipe Tile Element */
+.pipe-tile {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.pipe-svg {
+    width: 100%;
+    height: 100%;
+    transform-origin: center center;
+    transition: transform 0.24s cubic-bezier(0.25, 1, 0.5, 1.25);
+    overflow: visible;
+}
+
+/* Pipe Vector Lines */
+.pipe-line {
+    fill: none;
+    stroke: var(--pipe-stroke);
+    stroke-width: 3.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke 0.2s ease, filter 0.2s ease;
+}
+
+/* Flowing State */
+.pipe-tile.is-flowing .pipe-line {
+    stroke: var(--pipe-flow-stroke);
+    filter: drop-shadow(0 0 5px var(--pipe-flow-glow));
+}
+
+/* Source Hub */
+.pipe-source-hub {
+    fill: var(--source-hub-color);
+    transition: fill 0.2s ease;
+}
+
+.pipe-source-core {
+    fill: var(--bg-primary);
+}
+
+/* Terminal Bulb */
+.pipe-bulb-outer {
+    fill: none;
+    stroke: var(--pipe-stroke);
+    stroke-width: 3.8;
+    transition: stroke 0.2s ease;
+}
+
+.pipe-bulb-inner {
+    fill: var(--bg-primary);
+}
+
+.pipe-tile.is-flowing .pipe-bulb-outer {
+    stroke: var(--pipe-flow-stroke);
+    filter: drop-shadow(0 0 5px var(--pipe-flow-glow));
+}
+
+/* Hint Lock Pin */
+.tile-lock-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    color: var(--star-gold);
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+}
+
+.pipe-tile.is-locked .tile-lock-badge {
+    opacity: 0.9;
+    transform: scale(1);
+}
+
+/* Hint Sparkle Effect */
+@keyframes hintPulse {
+    0% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.15); filter: brightness(2) drop-shadow(0 0 10px #fbbf24); }
+    100% { transform: scale(1); filter: brightness(1); }
+}
+
+.hint-glow-effect {
+    animation: hintPulse 0.8s ease-out;
+}
+
+/* Wrap-around Border Portal Pips */
+.wrap-pip {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    opacity: 0.6;
+    box-shadow: 0 0 6px var(--accent-color);
+}
+.wrap-north { top: -3px; left: 50%; transform: translateX(-50%); }
+.wrap-south { bottom: -3px; left: 50%; transform: translateX(-50%); }
+.wrap-west  { left: -3px; top: 50%; transform: translateY(-50%); }
+.wrap-east  { right: -3px; top: 50%; transform: translateY(-50%); }
+
+/* ==========================================================================
+   3. BOTTOM CONTROLS & FLOATING ACTION BUTTON (Screenshot Accuracy)
+   ========================================================================== */
+
+.game-bottom-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.fab-hint-btn {
+    position: relative;
+    width: 72px;
+    height: 62px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--text-primary);
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.fab-hint-btn:active {
+    transform: scale(0.92);
+    background: var(--bg-card);
+}
+
+.hint-badge-counter {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #253346;
+    border: 1px solid #3e4f68;
+    color: #ffffff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+}
+
+.game-sub-toolbar {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    width: 100%;
+}
+
+.btn-tool {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.btn-tool:active {
+    background: var(--bg-surface);
+    color: var(--text-primary);
+}
+
+/* ==========================================================================
+   4. MODALS & POPUPS
+   ========================================================================== */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(8, 12, 18, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 100;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-dialog {
+    width: 100%;
+    max-width: 400px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    transform: scale(0.92);
+    transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.modal-overlay.active .modal-dialog {
+    transform: scale(1);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+}
+
+.form-select, .form-input {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    outline: none;
+}
+
+.range-slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.range-slider {
+    flex: 1;
+    accent-color: var(--accent-color);
+    height: 6px;
+    border-radius: 3px;
+}
+
+.toggle-switch-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+}
+
+.toggle-label-desc {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.toggle-subtext {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 28px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #334155;
+    transition: .3s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: var(--accent-color);
+}
+
+input:checked + .slider:before {
+    transform: translateX(20px);
+}
+
+/* Win Modal Specifics */
+.win-card {
+    text-align: center;
+}
+
+.win-stars {
+    font-size: 2.2rem;
+    color: var(--star-gold);
+    letter-spacing: 6px;
+    margin: 12px 0;
+}
+
+.win-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+    background: var(--bg-card);
+    padding: 16px;
+    border-radius: 16px;
+}
+
+.win-stat-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.win-stat-val {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+}
+
+.win-stat-lbl {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
