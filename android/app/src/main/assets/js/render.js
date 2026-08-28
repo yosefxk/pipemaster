@@ -1,7 +1,7 @@
 /**
  * SVG Pipe Tile Renderer
- * Generates crisp, high-contrast double-track pipe graphics with tight 90° rounded fillets,
- * source hubs, terminal bulbs, glowing water flow, and lightbulb hint indicators.
+ * Generates crisp 90° pipe graphics, source hubs, terminal bulbs,
+ * color-coded glowing portal pairs, and lightbulb hint badges.
  */
 
 class PipeRenderer {
@@ -9,9 +9,6 @@ class PipeRenderer {
         this.svgNS = "http://www.w3.org/2000/svg";
     }
 
-    /**
-     * Render the entire board into a container element
-     */
     renderBoard(container, engine, theme = 'minimal-dark') {
         container.innerHTML = '';
         container.className = `pipes-grid theme-${theme}`;
@@ -30,9 +27,6 @@ class PipeRenderer {
         }
     }
 
-    /**
-     * Update an existing rendered board without recreating DOM elements
-     */
     updateBoardState(container, engine) {
         for (let r = 0; r < engine.rows; r++) {
             for (let c = 0; c < engine.cols; c++) {
@@ -45,9 +39,6 @@ class PipeRenderer {
         }
     }
 
-    /**
-     * Create a single tile DOM element
-     */
     createTileElement(tile, engine) {
         const div = document.createElement('div');
         div.className = 'pipe-tile';
@@ -59,7 +50,22 @@ class PipeRenderer {
         if (tile.isHintLocked) div.classList.add('is-locked');
         if (tile.canonicalType === '0') div.classList.add('is-empty');
 
-        // SVG wrapper with smooth rotation
+        // Color-Coded Portal Badge & Glow
+        if (tile.portalInfo) {
+            div.classList.add('is-portal');
+            div.style.setProperty('--portal-color', tile.portalInfo.color);
+            div.style.setProperty('--portal-glow', tile.portalInfo.glow);
+
+            const portalBadge = document.createElement('div');
+            portalBadge.className = 'portal-badge';
+            portalBadge.style.borderColor = tile.portalInfo.color;
+            portalBadge.style.color = tile.portalInfo.color;
+            portalBadge.style.boxShadow = `0 0 8px ${tile.portalInfo.glow}`;
+            portalBadge.textContent = tile.portalInfo.label;
+            div.appendChild(portalBadge);
+        }
+
+        // SVG Pipe Conduit Layer
         const svg = this.generateTileSVG(tile);
         div.appendChild(svg);
 
@@ -73,16 +79,9 @@ class PipeRenderer {
         `;
         div.appendChild(hintBadge);
 
-        if (engine.wrapEdges) {
-            this.appendWrapIndicators(div, tile, engine);
-        }
-
         return div;
     }
 
-    /**
-     * Update a single tile DOM element
-     */
     updateTileElement(div, tile, engine) {
         div.classList.toggle('is-flowing', tile.isFlowing);
         div.classList.toggle('is-locked', tile.isHintLocked);
@@ -91,15 +90,8 @@ class PipeRenderer {
         if (svg) {
             svg.style.transform = `rotate(${tile.rotationAngle}deg)`;
         }
-
-        if (engine.wrapEdges) {
-            this.updateWrapIndicators(div, tile, engine);
-        }
     }
 
-    /**
-     * Generate SVG for a pipe tile with tight 90-degree corner fillets
-     */
     generateTileSVG(tile) {
         const svg = document.createElementNS(this.svgNS, 'svg');
         svg.setAttribute('viewBox', '0 0 100 100');
@@ -127,7 +119,6 @@ class PipeRenderer {
             hubInner.setAttribute('class', 'pipe-source-core');
             g.appendChild(hubInner);
 
-            // Outgoing stems based on canonical type
             if (type === '1') {
                 this.drawStem(g, 'N');
             } else if (type === 'I') {
@@ -213,9 +204,6 @@ class PipeRenderer {
         return svg;
     }
 
-    /**
-     * Draw straight connection stems for Hubs and Bulbs
-     */
     drawStem(g, dir) {
         const path = document.createElementNS(this.svgNS, 'path');
         let d = '';
@@ -231,38 +219,6 @@ class PipeRenderer {
         path.setAttribute('d', d);
         path.setAttribute('class', 'pipe-line stem');
         g.appendChild(path);
-    }
-
-    /**
-     * Add visual wrap portal cues around edge boundaries
-     */
-    appendWrapIndicators(div, tile, engine) {
-        const mask = tile.currentMask;
-        if (tile.row === 0 && (mask & DIRS.NORTH)) {
-            const pip = document.createElement('div');
-            pip.className = 'wrap-pip wrap-north';
-            div.appendChild(pip);
-        }
-        if (tile.row === engine.rows - 1 && (mask & DIRS.SOUTH)) {
-            const pip = document.createElement('div');
-            pip.className = 'wrap-pip wrap-south';
-            div.appendChild(pip);
-        }
-        if (tile.col === 0 && (mask & DIRS.WEST)) {
-            const pip = document.createElement('div');
-            pip.className = 'wrap-pip wrap-west';
-            div.appendChild(pip);
-        }
-        if (tile.col === engine.cols - 1 && (mask & DIRS.EAST)) {
-            const pip = document.createElement('div');
-            pip.className = 'wrap-pip wrap-east';
-            div.appendChild(pip);
-        }
-    }
-
-    updateWrapIndicators(div, tile, engine) {
-        div.querySelectorAll('.wrap-pip').forEach(el => el.remove());
-        this.appendWrapIndicators(div, tile, engine);
     }
 }
 

@@ -1,7 +1,7 @@
 /**
- * Pipes Puzzle Game Engine
- * Handles board generation, toroidal wrap-around topology,
- * bitmask transformations, flow traversal, and hint solving.
+ * PipeMaster Game Engine
+ * Spanning tree puzzle generation, deterministic rotation,
+ * color-coded portal pairs (flow-over teleportation), and flow solver.
  */
 
 const DIRS = {
@@ -27,7 +27,15 @@ const DELTA = {
     [DIRS.WEST]:  [ 0, -1]
 };
 
-// Map each 4-bit connection mask to its canonical base type and initial base rotation
+// Distinct vibrant portal pair palette
+const PORTAL_COLORS = [
+    { label: 'A', color: '#f43f5e', glow: 'rgba(244, 63, 94, 0.75)' },  // Neon Rose
+    { label: 'B', color: '#06b6d4', glow: 'rgba(6, 182, 212, 0.75)' },  // Electric Cyan
+    { label: 'C', color: '#eab308', glow: 'rgba(234, 179, 8, 0.75)' },   // Neon Gold
+    { label: 'D', color: '#a855f7', glow: 'rgba(168, 85, 247, 0.75)' }   // Plasma Purple
+];
+
+// Map 4-bit connection mask to canonical base type and initial base rotation
 const CANONICAL_MAP = {
     0:  { type: '0', baseRot: 0 },
     1:  { type: '1', baseRot: 0 },
@@ -47,43 +55,34 @@ const CANONICAL_MAP = {
     15: { type: '+', baseRot: 0 }
 };
 
-// Rotate bitmask 90 deg clockwise
 function rotateMaskCW(mask) {
     return ((mask << 1) & 0b1111) | ((mask >> 3) & 0b0001);
 }
 
-// Rotate bitmask 90 deg counter-clockwise
 function rotateMaskCCW(mask) {
     return ((mask >> 1) & 0b0111) | ((mask << 3) & 0b1000);
 }
 
-// Class representing a single tile
 class PipeTile {
     constructor(row, col, solutionMask = 0, isSource = false) {
         this.row = row;
         this.col = col;
-        this.solutionMask = solutionMask; // Target bitmask that completes the puzzle
-        this.currentMask = solutionMask;   // Current orientation bitmask
+        this.solutionMask = solutionMask;
+        this.currentMask = solutionMask;
         
         const info = CANONICAL_MAP[solutionMask] || { type: '0', baseRot: 0 };
-        this.canonicalType = info.type;    // '0', '1', 'I', 'L', 'T', '+'
-        this.rotationAngle = info.baseRot; // Visual display rotation in degrees
-        this.isSource = isSource;         // Whether this tile is the water/energy pump
-        this.isFlowing = false;          // Whether water reaches this tile
-        this.isHintLocked = false;       // Whether this tile was solved via hint & locked
-        this.wrapExits = {               // Flags if a connection wraps across edges
-            [DIRS.NORTH]: false,
-            [DIRS.EAST]: false,
-            [DIRS.SOUTH]: false,
-            [DIRS.WEST]: false
-        };
+        this.canonicalType = info.type;
+        this.rotationAngle = info.baseRot;
+        this.isSource = isSource;
+        this.isFlowing = false;
+        this.isHintLocked = false;
+        this.portalInfo = null; // { label, color, glow, partner: [r, c] }
     }
 
     getType() {
         return this.canonicalType;
     }
 
-    // Rotate tile clockwise by 90 degrees
     rotateCW() {
         if (this.isHintLocked) return false;
         this.currentMask = rotateMaskCW(this.currentMask);
@@ -91,7 +90,6 @@ class PipeTile {
         return true;
     }
 
-    // Rotate tile counter-clockwise by 90 degrees
     rotateCCW() {
         if (this.isHintLocked) return false;
         this.currentMask = rotateMaskCCW(this.currentMask);
@@ -99,7 +97,6 @@ class PipeTile {
         return true;
     }
 
-    // Check if current orientation matches the solution (considering symmetry)
     isCorrect() {
         if (this.canonicalType === '+' || this.canonicalType === '0') return true;
         if (this.canonicalType === 'I') {
@@ -110,41 +107,48 @@ class PipeTile {
     }
 }
 
-// Game Board and Puzzle Generator
 class PipesGameEngine {
     constructor(options = {}) {
         this.rows = options.rows || 6;
         this.cols = options.cols || 6;
         this.difficulty = options.difficulty || 'medium';
-        this.wrapEdges = options.wrapEdges ?? false;
+        this.enablePortals = options.wrapEdges ?? false; // Flow-over portal pairs
         this.sourcePos = options.sourcePos || null;
         
         this.grid = [];
         this.sourceTile = null;
+        this.portalPairs = []; // [{ p1: [r, c], p2: [r, c], info }]
         this.moves = 0;
         this.hintsUsed = 0;
         this.isCompleted = false;
+        this.initialStateSnapshot = null;
 
         this.generateBoard();
     }
 
-    // Initialize/Regenerate the board
     generateBoard() {
         this.moves = 0;
         this.hintsUsed = 0;
         this.isCompleted = false;
         this.grid = [];
+        this.portalPairs = [];
 
-        // 1. Pick Source position (near center)
+        // 1. Pick Source location near center
         let sr = this.sourcePos ? this.sourcePos[0] : Math.floor(this.rows / 2);
         let sc = this.sourcePos ? this.sourcePos[1] : Math.floor(this.cols / 2);
         sr = Math.max(0, Math.min(this.rows - 1, sr));
         sc = Math.max(0, Math.min(this.cols - 1, sc));
 
-        // 2. Generate Spanning Tree connections
+        // 2. Select Portal Pairs if enabled
+        if (this.enablePortals) {
+            const pairCount = (this.rows >= 8 || this.cols >= 8) ? 2 : 1;
+            this._selectPortalLocations(sr, sc, pairCount);
+        }
+
+        // 3. Generate Spanning Tree connections
         const connections = this._generateSpanningTree(sr, sc);
 
-        // 3. Populate PipeTile objects
+        // 4. Create PipeTile instances
         for (let r = 0; r < this.rows; r++) {
             this.grid[r] = [];
             for (let c = 0; c < this.cols; c++) {
@@ -152,17 +156,12 @@ class PipesGameEngine {
                 const solMask = connections[r][c];
                 const tile = new PipeTile(r, c, solMask, isSource);
                 
-                // Track wrap exits
-                if (this.wrapEdges) {
-                    for (const d of DIR_LIST) {
-                        if (solMask & d) {
-                            const [dr, dc] = DELTA[d];
-                            const nr = r + dr;
-                            const nc = c + dc;
-                            if (nr < 0 || nr >= this.rows || nc < 0 || nc >= this.cols) {
-                                tile.wrapExits[d] = true;
-                            }
-                        }
+                // Attach portal metadata if assigned
+                for (const pair of this.portalPairs) {
+                    if (pair.p1[0] === r && pair.p1[1] === c) {
+                        tile.portalInfo = { ...pair.info, partner: pair.p2 };
+                    } else if (pair.p2[0] === r && pair.p2[1] === c) {
+                        tile.portalInfo = { ...pair.info, partner: pair.p1 };
                     }
                 }
 
@@ -173,14 +172,53 @@ class PipesGameEngine {
             }
         }
 
-        // 4. Scramble the board
+        // 5. Scramble board
         this._scrambleBoard();
 
-        // 5. Calculate initial flow
+        // 6. Save initial scrambled state for clean restart
+        this.saveInitialStateSnapshot();
+
+        // 7. Calculate initial flow
         this.updateFlow();
     }
 
-    // Generate spanning tree using randomized Prim's algorithm
+    _selectPortalLocations(sr, sc, count) {
+        const used = new Set([`${sr},${sc}`]);
+        for (let i = 0; i < count; i++) {
+            const info = PORTAL_COLORS[i % PORTAL_COLORS.length];
+            
+            // Choose portal A in one quadrant and portal B in another
+            let p1 = null;
+            let p2 = null;
+            let attempts = 0;
+
+            while ((!p1 || !p2) && attempts < 100) {
+                attempts++;
+                const r1 = Math.floor(Math.random() * this.rows);
+                const c1 = Math.floor(Math.random() * this.cols);
+                const r2 = Math.floor(Math.random() * this.rows);
+                const c2 = Math.floor(Math.random() * this.cols);
+
+                const k1 = `${r1},${c1}`;
+                const k2 = `${r2},${c2}`;
+
+                // Ensure distance >= 3 and not overlapping
+                const dist = Math.abs(r1 - r2) + Math.abs(c1 - c2);
+                if (!used.has(k1) && !used.has(k2) && dist >= 3) {
+                    p1 = [r1, c1];
+                    p2 = [r2, c2];
+                    used.add(k1);
+                    used.add(k2);
+                    break;
+                }
+            }
+
+            if (p1 && p2) {
+                this.portalPairs.push({ p1, p2, info });
+            }
+        }
+    }
+
     _generateSpanningTree(startR, startC) {
         const rows = this.rows;
         const cols = this.cols;
@@ -190,23 +228,14 @@ class PipesGameEngine {
         inTree[startR][startC] = true;
         let connectedCount = 1;
         const totalCells = rows * cols;
-
         const frontier = [];
 
         const addFrontierOf = (r, c) => {
             for (const d of DIR_LIST) {
                 const [dr, dc] = DELTA[d];
-                let nr = r + dr;
-                let nc = c + dc;
-
-                if (this.wrapEdges) {
-                    nr = (nr + rows) % rows;
-                    nc = (nc + cols) % cols;
-                } else {
-                    if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
-                }
-
-                if (!inTree[nr][nc]) {
+                const nr = r + dr;
+                const nc = c + dc;
+                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !inTree[nr][nc]) {
                     frontier.push({
                         fromR: r, fromC: c,
                         toR: nr, toC: nc,
@@ -223,44 +252,66 @@ class PipesGameEngine {
             const idx = Math.floor(Math.random() * frontier.length);
             const edge = frontier.splice(idx, 1)[0];
 
-            if (inTree[edge.toR][edge.toC]) {
-                continue;
-            }
+            if (inTree[edge.toR][edge.toC]) continue;
 
-            // Connect edge
             inTree[edge.toR][edge.toC] = true;
             masks[edge.fromR][edge.fromC] |= edge.dir;
             masks[edge.toR][edge.toC] |= edge.oppDir;
             connectedCount++;
 
+            // If we just connected to Portal A, also add Portal B's frontier!
+            for (const pair of this.portalPairs) {
+                if (pair.p1[0] === edge.toR && pair.p1[1] === edge.toC) {
+                    const [pr2, pc2] = pair.p2;
+                    if (!inTree[pr2][pc2]) {
+                        inTree[pr2][pc2] = true;
+                        connectedCount++;
+                        addFrontierOf(pr2, pc2);
+                    }
+                } else if (pair.p2[0] === edge.toR && pair.p2[1] === edge.toC) {
+                    const [pr1, pc1] = pair.p1;
+                    if (!inTree[pr1][pc1]) {
+                        inTree[pr1][pc1] = true;
+                        connectedCount++;
+                        addFrontierOf(pr1, pc1);
+                    }
+                }
+            }
+
             addFrontierOf(edge.toR, edge.toC);
         }
 
-        // Add extra loops for 'hard' and 'master' difficulties
+        // Add loops for hard/master difficulties
         if (this.difficulty === 'hard' || this.difficulty === 'master') {
-            const extraLoopCount = Math.floor((rows * cols) * (this.difficulty === 'master' ? 0.20 : 0.10));
-            for (let i = 0; i < extraLoopCount; i++) {
+            const extraLoops = Math.floor((rows * cols) * (this.difficulty === 'master' ? 0.20 : 0.10));
+            for (let i = 0; i < extraLoops; i++) {
                 const r = Math.floor(Math.random() * rows);
                 const c = Math.floor(Math.random() * cols);
                 const d = DIR_LIST[Math.floor(Math.random() * DIR_LIST.length)];
                 const [dr, dc] = DELTA[d];
-                let nr = r + dr;
-                let nc = c + dc;
-                if (this.wrapEdges) {
-                    nr = (nr + rows) % rows;
-                    nc = (nc + cols) % cols;
-                } else if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) {
-                    continue;
-                }
+                const nr = r + dr;
+                const nc = c + dc;
+                if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
 
-                const curDegree = ((masks[r][c] & 1) ? 1 : 0) + ((masks[r][c] & 2) ? 1 : 0) +
-                                  ((masks[r][c] & 4) ? 1 : 0) + ((masks[r][c] & 8) ? 1 : 0);
-                const neighDegree = ((masks[nr][nc] & 1) ? 1 : 0) + ((masks[nr][nc] & 2) ? 1 : 0) +
-                                    ((masks[nr][nc] & 4) ? 1 : 0) + ((masks[nr][nc] & 8) ? 1 : 0);
+                masks[r][c] |= d;
+                masks[nr][nc] |= OPPOSITE[d];
+            }
+        }
 
-                if (curDegree < 4 && neighDegree < 4) {
-                    masks[r][c] |= d;
-                    masks[nr][nc] |= OPPOSITE[d];
+        // Guarantee portals have at least 1 opening so water can flow into and out of them
+        for (const pair of this.portalPairs) {
+            for (const [pr, pc] of [pair.p1, pair.p2]) {
+                if (masks[pr][pc] === 0) {
+                    for (const d of DIR_LIST) {
+                        const [dr, dc] = DELTA[d];
+                        const nr = pr + dr;
+                        const nc = pc + dc;
+                        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                            masks[pr][pc] |= d;
+                            masks[nr][nc] |= OPPOSITE[d];
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -268,7 +319,6 @@ class PipesGameEngine {
         return masks;
     }
 
-    // Scramble tiles randomly ensuring the board is not trivially solved
     _scrambleBoard() {
         let isTriviallySolved = true;
 
@@ -297,25 +347,44 @@ class PipesGameEngine {
         }
     }
 
-    // Get neighbor tile in given direction
-    getNeighbor(r, c, dir) {
-        const [dr, dc] = DELTA[dir];
-        let nr = r + dr;
-        let nc = c + dc;
-
-        if (this.wrapEdges) {
-            nr = (nr + this.rows) % this.rows;
-            nc = (nc + this.cols) % this.cols;
-            return this.grid[nr][nc];
-        } else {
-            if (nr >= 0 && nr < this.rows && nc >= 0 && nc < this.cols) {
-                return this.grid[nr][nc];
-            }
-            return null;
-        }
+    saveInitialStateSnapshot() {
+        this.initialStateSnapshot = this.grid.map(row => 
+            row.map(tile => ({
+                currentMask: tile.currentMask,
+                rotationAngle: tile.rotationAngle,
+                isHintLocked: false
+            }))
+        );
     }
 
-    // Update water flow simulation from source
+    restoreInitialState() {
+        if (!this.initialStateSnapshot) return;
+        this.moves = 0;
+        this.hintsUsed = 0;
+        this.isCompleted = false;
+
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                const snap = this.initialStateSnapshot[r][c];
+                const tile = this.grid[r][c];
+                tile.currentMask = snap.currentMask;
+                tile.rotationAngle = snap.rotationAngle;
+                tile.isHintLocked = false;
+            }
+        }
+        this.updateFlow();
+    }
+
+    getNeighbor(r, c, dir) {
+        const [dr, dc] = DELTA[dir];
+        const nr = r + dr;
+        const nc = c + dc;
+        if (nr >= 0 && nr < this.rows && nc >= 0 && nc < this.cols) {
+            return this.grid[nr][nc];
+        }
+        return null;
+    }
+
     updateFlow() {
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.cols; c++) {
@@ -325,7 +394,6 @@ class PipesGameEngine {
 
         if (!this.sourceTile) return false;
 
-        // BFS flow propagation
         const queue = [this.sourceTile];
         this.sourceTile.isFlowing = true;
 
@@ -333,6 +401,7 @@ class PipesGameEngine {
             const current = queue.shift();
             const curMask = current.currentMask;
 
+            // 1. Regular adjacent conduit flow
             for (const d of DIR_LIST) {
                 if (curMask & d) {
                     const neighbor = this.getNeighbor(current.row, current.col, d);
@@ -345,24 +414,31 @@ class PipesGameEngine {
                     }
                 }
             }
+
+            // 2. Portal Teleportation: If this tile is a portal, flow emerges from its partner portal!
+            if (current.portalInfo && current.portalInfo.partner) {
+                const [pr, pc] = current.portalInfo.partner;
+                const partnerTile = this.grid[pr][pc];
+                if (partnerTile && !partnerTile.isFlowing) {
+                    partnerTile.isFlowing = true;
+                    queue.push(partnerTile);
+                }
+            }
         }
 
         this.isCompleted = this.checkWinCondition();
         return this.isCompleted;
     }
 
-    // Check if the entire board is solved
     checkWinCondition() {
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.cols; c++) {
                 const tile = this.grid[r][c];
                 
-                // Every non-empty tile must be receiving flow
                 if (tile.currentMask !== 0 && !tile.isFlowing) {
                     return false;
                 }
 
-                // Every open port must have a connected neighbor (no leaks into walls or mismatches)
                 for (const d of DIR_LIST) {
                     if (tile.currentMask & d) {
                         const neighbor = this.getNeighbor(r, c, d);
@@ -380,7 +456,6 @@ class PipesGameEngine {
         return true;
     }
 
-    // Rotate a tile at (row, col)
     rotateTile(r, c, clockwise = true) {
         if (this.isCompleted) return false;
         const tile = this.grid[r][c];
@@ -394,7 +469,6 @@ class PipesGameEngine {
         return rotated;
     }
 
-    // Apply Hint: finds an unsolved tile, rotates it to the correct orientation, and locks it
     applyHint() {
         if (this.isCompleted) return null;
 
@@ -424,7 +498,6 @@ class PipesGameEngine {
 
         if (unsolvedTiles.length === 0) return null;
 
-        // Prioritize tiles adjacent to water flow for better game feel
         const targetTile = flowingAdjacentUnsolved.length > 0 
             ? flowingAdjacentUnsolved[Math.floor(Math.random() * flowingAdjacentUnsolved.length)]
             : unsolvedTiles[Math.floor(Math.random() * unsolvedTiles.length)];
@@ -445,21 +518,8 @@ class PipesGameEngine {
             tile: targetTile
         };
     }
-
-    // Get game completion stats
-    getStats() {
-        return {
-            rows: this.rows,
-            cols: this.cols,
-            difficulty: this.difficulty,
-            wrapEdges: this.wrapEdges,
-            moves: this.moves,
-            hintsUsed: this.hintsUsed,
-            isCompleted: this.isCompleted
-        };
-    }
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { DIRS, OPPOSITE, DELTA, CANONICAL_MAP, PipeTile, PipesGameEngine };
+    module.exports = { DIRS, OPPOSITE, DELTA, CANONICAL_MAP, PORTAL_COLORS, PipeTile, PipesGameEngine };
 }

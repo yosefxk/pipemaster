@@ -1,6 +1,6 @@
 /* ==========================================================================
    PipeMaster Mobile-First Stylesheet
-   Minimalist Dark Slate with Transparent Grid & Neon Glow
+   Minimalist Dark Slate with Transparent Grid, Portals & Neon Glow
    ========================================================================== */
 
 :root {
@@ -16,7 +16,7 @@
     --pipe-stroke: #8694a6;
     --pipe-fill: transparent;
     --pipe-flow-stroke: #38bdf8;
-    --pipe-flow-glow: rgba(56, 189, 248, 0.5);
+    --pipe-flow-glow: rgba(56, 189, 248, 0.55);
     --grid-border: rgba(255, 255, 255, 0.07);
     --grid-cell-bg: rgba(255, 255, 255, 0.025);
     --border-color: #2e3c51;
@@ -72,7 +72,6 @@ body.theme-zen-slate {
     --grid-cell-bg: rgba(16, 185, 129, 0.02);
 }
 
-/* Base Reset & Mobile Screen Locking */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -102,7 +101,6 @@ html, body {
     flex-direction: column;
 }
 
-/* Screen Management */
 .app-screen {
     position: absolute;
     top: 0;
@@ -237,7 +235,7 @@ html, body {
 }
 
 /* ==========================================================================
-   2. GAME SCREEN & HUD
+   2. GAME SCREEN & HEADER (Clean Single-Line Layout)
    ========================================================================== */
 
 #screen-game {
@@ -245,37 +243,50 @@ html, body {
     flex-direction: column;
     justify-content: space-between;
     height: 100%;
-    padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 20px) 16px;
+    padding: env(safe-area-inset-top, 14px) 14px env(safe-area-inset-bottom, 16px) 14px;
 }
 
 .game-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 52px;
+    min-height: 48px;
     width: 100%;
-    padding: 0 4px;
+    gap: 6px;
 }
 
-.header-left, .header-right {
+.header-left {
     display: flex;
     align-items: center;
-    gap: 10px;
+    flex-shrink: 0;
 }
 
 .header-center {
-    font-size: 1.15rem;
+    flex: 1;
+    text-align: center;
+    font-size: 1.05rem;
     font-weight: 700;
     color: var(--text-primary);
     letter-spacing: -0.2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 4px;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
 }
 
 .icon-btn {
     background: transparent;
     border: none;
     color: var(--text-secondary);
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -292,19 +303,19 @@ html, body {
 /* Big Monospace Timer */
 .timer-container {
     text-align: center;
-    margin: 8px 0;
+    margin: 4px 0 8px 0;
 }
 
 .timer-display {
     font-family: var(--font-mono);
-    font-size: 2.1rem;
+    font-size: 2.2rem;
     font-weight: 700;
     color: var(--text-primary);
     letter-spacing: 1px;
 }
 
 /* ==========================================================================
-   3. BOARD & TRANSPARENT GRID
+   3. BOARD, TRANSPARENT GRID & COLOR-CODED PORTALS
    ========================================================================== */
 
 .board-wrapper {
@@ -313,18 +324,17 @@ html, body {
     justify-content: center;
     align-items: center;
     width: 100%;
-    max-height: calc(100vh - 220px);
-    max-height: calc(100dvh - 220px);
+    max-height: calc(100vh - 210px);
+    max-height: calc(100dvh - 210px);
     overflow: hidden;
 }
 
-/* Outer Grid Container with Subtle Transparent Frame */
 .pipes-grid {
     display: grid;
-    gap: 3px; /* Clean spacing between cells */
+    gap: 3px;
     padding: 4px;
     width: 100%;
-    max-width: min(88vw, 480px);
+    max-width: min(90vw, 480px);
     aspect-ratio: var(--grid-cols) / var(--grid-rows);
     max-height: 100%;
     margin: auto;
@@ -335,7 +345,6 @@ html, body {
     box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.4);
 }
 
-/* Subtle Transparent Tile Cells (Clear Beginning & Ending of tiles) */
 .pipe-tile {
     position: relative;
     width: 100%;
@@ -356,7 +365,47 @@ html, body {
     border-color: rgba(255, 255, 255, 0.16);
 }
 
-/* SVG Pipe Vector Elements */
+/* Color-Coded Portal Tiles */
+.pipe-tile.is-portal {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--portal-color);
+    box-shadow: inset 0 0 10px var(--portal-glow);
+}
+
+.portal-badge {
+    position: absolute;
+    bottom: 3px;
+    right: 3px;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 1.5px solid currentColor;
+    font-size: 0.68rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 6;
+    pointer-events: none;
+    animation: portalPulse 2.5s infinite ease-in-out;
+}
+
+@keyframes portalPulse {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.15); filter: brightness(1.5); }
+}
+
+.pipe-tile.is-portal.is-flowing .portal-badge {
+    animation: portalSurge 1.2s infinite alternate;
+}
+
+@keyframes portalSurge {
+    0% { transform: scale(1); filter: brightness(1.2); }
+    100% { transform: scale(1.25); filter: brightness(2) drop-shadow(0 0 8px var(--portal-color)); }
+}
+
+/* SVG Vector Conduits */
 .pipe-svg {
     width: 100%;
     height: 100%;
@@ -374,13 +423,11 @@ html, body {
     transition: stroke 0.2s ease, filter 0.2s ease;
 }
 
-/* Active Flow State */
 .pipe-tile.is-flowing .pipe-line {
     stroke: var(--pipe-flow-stroke);
     filter: drop-shadow(0 0 5px var(--pipe-flow-glow));
 }
 
-/* Central Source Hub */
 .pipe-source-hub {
     fill: var(--source-hub-color);
     transition: fill 0.2s ease;
@@ -390,7 +437,6 @@ html, body {
     fill: var(--bg-primary);
 }
 
-/* Terminal Bulb */
 .pipe-bulb-outer {
     fill: none;
     stroke: var(--pipe-stroke);
@@ -408,7 +454,7 @@ html, body {
 }
 
 /* ==========================================================================
-   4. LIGHTBULB HINT BADGE & HINT CONTROLS
+   4. LIGHTBULB HINT BADGE & BUTTONS
    ========================================================================== */
 
 .tile-hint-badge {
@@ -429,7 +475,7 @@ html, body {
     transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2);
     pointer-events: none;
     box-shadow: 0 0 8px rgba(250, 204, 21, 0.5);
-    z-index: 5;
+    z-index: 7;
 }
 
 .pipe-tile.is-locked .tile-hint-badge {
@@ -447,7 +493,6 @@ html, body {
     animation: hintPulse 0.8s ease-out;
 }
 
-/* Shake Animation when Hints Exhausted */
 @keyframes shakeX {
     0%, 100% { transform: translateX(0); }
     20%, 60% { transform: translateX(-6px); }
@@ -458,21 +503,6 @@ html, body {
     animation: shakeX 0.35s ease-in-out;
 }
 
-/* Wrap-around Border Portal Pips */
-.wrap-pip {
-    position: absolute;
-    width: 6px;
-    height: 6px;
-    background: var(--accent-color);
-    border-radius: 50%;
-    opacity: 0.65;
-    box-shadow: 0 0 6px var(--accent-color);
-}
-.wrap-north { top: -4px; left: 50%; transform: translateX(-50%); }
-.wrap-south { bottom: -4px; left: 50%; transform: translateX(-50%); }
-.wrap-west  { left: -4px; top: 50%; transform: translateY(-50%); }
-.wrap-east  { right: -4px; top: 50%; transform: translateY(-50%); }
-
 /* ==========================================================================
    5. BOTTOM CONTROLS & FAB
    ========================================================================== */
@@ -481,17 +511,17 @@ html, body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
 }
 
 .fab-hint-btn {
     position: relative;
-    width: 72px;
-    height: 62px;
+    width: 68px;
+    height: 58px;
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
-    border-radius: 20px;
+    border-radius: 18px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -526,7 +556,7 @@ html, body {
 .game-sub-toolbar {
     display: flex;
     justify-content: center;
-    gap: 20px;
+    gap: 16px;
     width: 100%;
 }
 
@@ -539,7 +569,7 @@ html, body {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 14px;
+    padding: 7px 12px;
     border-radius: 12px;
     cursor: pointer;
 }
@@ -550,7 +580,7 @@ html, body {
 }
 
 /* ==========================================================================
-   6. MODALS & POPUPS
+   6. MODALS & TOAST NOTIFICATION
    ========================================================================== */
 
 .modal-overlay {
@@ -750,4 +780,30 @@ input:checked + .slider:before {
     font-size: 0.75rem;
     color: var(--text-muted);
     text-transform: uppercase;
+}
+
+/* Toast Feedback */
+.toast-notice {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(30px);
+    background: #1e293b;
+    border: 1px solid var(--border-color);
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+    z-index: 200;
+    white-space: nowrap;
+}
+
+.toast-notice.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
 }

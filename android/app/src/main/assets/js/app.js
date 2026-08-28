@@ -1,6 +1,6 @@
 /**
  * Main Application Controller & UI Coordinator
- * Handles navigation, settings, custom games, timers, gestures, and modals.
+ * Coordinates navigation, custom games, portal modes, timer, share API, and true restarts.
  */
 
 class PipesApp {
@@ -19,7 +19,7 @@ class PipesApp {
         this.moveHistory = [];
         this.currentLevelNumber = 1;
 
-        // Settings and stats with LocalStorage support
+        // Settings and stats
         this.settings = this.loadSettings();
         this.stats = this.loadStats();
 
@@ -38,7 +38,7 @@ class PipesApp {
             defaultDifficulty: 'medium',
             defaultRows: 6,
             defaultCols: 6,
-            wrapEdges: false,
+            enablePortals: false,
             theme: 'minimal-dark',
             soundEnabled: true,
             hapticsEnabled: true,
@@ -90,7 +90,7 @@ class PipesApp {
             screenMenu: document.getElementById('screen-menu'),
             screenGame: document.getElementById('screen-game'),
             
-            // Buttons in Menu
+            // Menu Buttons
             btnQuickPlay: document.getElementById('btn-quick-play'),
             btnCustomPlay: document.getElementById('btn-custom-play'),
             btnMenuSettings: document.getElementById('btn-menu-settings'),
@@ -101,6 +101,7 @@ class PipesApp {
             btnGameSettings: document.getElementById('btn-game-settings'),
             btnGameHelp: document.getElementById('btn-game-help'),
             btnNextLevelTop: document.getElementById('btn-next-level-top'),
+            btnShareTop: document.getElementById('btn-share-top'),
             levelTitle: document.getElementById('level-title'),
             gameTimer: document.getElementById('game-timer'),
             boardContainer: document.getElementById('board-container'),
@@ -108,6 +109,7 @@ class PipesApp {
             hintBadge: document.getElementById('hint-badge'),
             btnUndo: document.getElementById('btn-undo'),
             btnRestart: document.getElementById('btn-restart'),
+            btnShareBottom: document.getElementById('btn-share-bottom'),
             btnMute: document.getElementById('btn-mute'),
             
             // Modals
@@ -115,6 +117,7 @@ class PipesApp {
             modalSettings: document.getElementById('modal-settings'),
             modalWin: document.getElementById('modal-win'),
             modalHelp: document.getElementById('modal-help'),
+            toastNotice: document.getElementById('toast-notice'),
             
             // Custom Game Form
             customRows: document.getElementById('custom-rows'),
@@ -122,13 +125,13 @@ class PipesApp {
             customRowsVal: document.getElementById('custom-rows-val'),
             customColsVal: document.getElementById('custom-cols-val'),
             customDiff: document.getElementById('custom-diff'),
-            customWrap: document.getElementById('custom-wrap'),
+            customPortals: document.getElementById('custom-portals'),
             btnStartCustom: document.getElementById('btn-start-custom'),
             
             // Settings Form
             settingDifficulty: document.getElementById('setting-difficulty'),
             settingSize: document.getElementById('setting-size'),
-            settingWrap: document.getElementById('setting-wrap'),
+            settingPortals: document.getElementById('setting-portals'),
             settingTheme: document.getElementById('setting-theme'),
             settingSound: document.getElementById('setting-sound'),
             settingHaptics: document.getElementById('setting-haptics'),
@@ -140,12 +143,13 @@ class PipesApp {
             winStars: document.getElementById('win-stars'),
             btnWinNext: document.getElementById('btn-win-next'),
             btnWinRestart: document.getElementById('btn-win-restart'),
+            btnWinShare: document.getElementById('btn-win-share'),
             btnWinMenu: document.getElementById('btn-win-menu')
         };
     }
 
     bindEvents() {
-        // Menu screen navigation
+        // Navigation
         this.dom.btnQuickPlay?.addEventListener('click', () => {
             this.sound.playTapSound();
             this.startQuickGame();
@@ -166,7 +170,7 @@ class PipesApp {
             this.openModal('modal-help');
         });
 
-        // In-game HUD actions
+        // HUD Actions
         this.dom.btnBackToMenu?.addEventListener('click', () => {
             this.sound.playTapSound();
             this.stopTimer();
@@ -188,6 +192,14 @@ class PipesApp {
             this.nextLevel();
         });
 
+        this.dom.btnShareTop?.addEventListener('click', () => {
+            this.shareGame();
+        });
+
+        this.dom.btnShareBottom?.addEventListener('click', () => {
+            this.shareGame();
+        });
+
         this.dom.btnHint?.addEventListener('click', () => {
             this.triggerHint();
         });
@@ -204,7 +216,7 @@ class PipesApp {
             this.toggleMute();
         });
 
-        // Custom Game Slider adjustments
+        // Sliders
         this.dom.customRows?.addEventListener('input', (e) => {
             this.dom.customRowsVal.textContent = e.target.value;
         });
@@ -218,13 +230,13 @@ class PipesApp {
             const rows = parseInt(this.dom.customRows.value, 10);
             const cols = parseInt(this.dom.customCols.value, 10);
             const difficulty = this.dom.customDiff.value;
-            const wrapEdges = this.dom.customWrap.checked;
+            const wrapEdges = this.dom.customPortals.checked;
 
             this.closeModal('modal-custom');
             this.startNewGame({ rows, cols, difficulty, wrapEdges });
         });
 
-        // Settings Form Syncing
+        // Settings Form Sync
         this.dom.settingDifficulty?.addEventListener('change', (e) => {
             this.settings.defaultDifficulty = e.target.value;
             this.saveSettings();
@@ -237,8 +249,8 @@ class PipesApp {
             this.saveSettings();
         });
 
-        this.dom.settingWrap?.addEventListener('change', (e) => {
-            this.settings.wrapEdges = e.target.checked;
+        this.dom.settingPortals?.addEventListener('change', (e) => {
+            this.settings.enablePortals = e.target.checked;
             this.saveSettings();
         });
 
@@ -260,7 +272,7 @@ class PipesApp {
             this.saveSettings();
         });
 
-        // Win Modal Actions
+        // Win Modal
         this.dom.btnWinNext?.addEventListener('click', () => {
             this.sound.playTapSound();
             this.closeModal('modal-win');
@@ -273,13 +285,17 @@ class PipesApp {
             this.restartLevel();
         });
 
+        this.dom.btnWinShare?.addEventListener('click', () => {
+            this.shareGame(true);
+        });
+
         this.dom.btnWinMenu?.addEventListener('click', () => {
             this.sound.playTapSound();
             this.closeModal('modal-win');
             this.showScreen('screen-menu');
         });
 
-        // Board Tile Interaction via Event Delegation
+        // Board Tile Click
         this.dom.boardContainer?.addEventListener('click', (e) => {
             const tileElem = e.target.closest('.pipe-tile');
             if (!tileElem || !this.engine || this.engine.isCompleted) return;
@@ -289,7 +305,6 @@ class PipesApp {
             this.onTileClick(r, c, true);
         });
 
-        // Secondary Click / Context Menu for counter-clockwise rotation
         this.dom.boardContainer?.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             const tileElem = e.target.closest('.pipe-tile');
@@ -308,7 +323,7 @@ class PipesApp {
             });
         });
 
-        // Android Hardware Back key hook
+        // Android Hardware Back
         window.addEventListener('popstate', () => {
             if (this.dom.screenGame?.classList.contains('active')) {
                 this.showScreen('screen-menu');
@@ -319,7 +334,7 @@ class PipesApp {
     syncSettingsUI() {
         if (this.dom.settingDifficulty) this.dom.settingDifficulty.value = this.settings.defaultDifficulty;
         if (this.dom.settingSize) this.dom.settingSize.value = this.settings.defaultRows;
-        if (this.dom.settingWrap) this.dom.settingWrap.checked = this.settings.wrapEdges;
+        if (this.dom.settingPortals) this.dom.settingPortals.checked = this.settings.enablePortals;
         if (this.dom.settingTheme) this.dom.settingTheme.value = this.settings.theme;
         if (this.dom.settingSound) this.dom.settingSound.checked = this.settings.soundEnabled;
         if (this.dom.settingHaptics) this.dom.settingHaptics.checked = this.settings.hapticsEnabled;
@@ -360,36 +375,44 @@ class PipesApp {
         if (modal) modal.classList.remove('active');
     }
 
-    // Start Quick Game from settings
+    showToast(message) {
+        let toast = this.dom.toastNotice;
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'toast-notice';
+            toast.className = 'toast-notice';
+            document.body.appendChild(toast);
+            this.dom.toastNotice = toast;
+        }
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
     startQuickGame() {
         this.startNewGame({
             rows: this.settings.defaultRows,
             cols: this.settings.defaultCols,
             difficulty: this.settings.defaultDifficulty,
-            wrapEdges: this.settings.wrapEdges
+            wrapEdges: this.settings.enablePortals
         });
     }
 
-    // Start New Game instance
     startNewGame(options) {
         this.engine = new PipesGameEngine(options);
         this.moveHistory = [];
         this.showScreen('screen-game');
         
-        const wrapLabel = options.wrapEdges ? ' ✦ Wrap' : '';
+        const portalLabel = options.wrapEdges ? ' · 🌀 Portals' : '';
         const diffCap = options.difficulty.charAt(0).toUpperCase() + options.difficulty.slice(1);
         if (this.dom.levelTitle) {
-            this.dom.levelTitle.textContent = `Pipes ${this.engine.rows}x${this.engine.cols} · ${diffCap}${wrapLabel}`;
+            this.dom.levelTitle.textContent = `${this.engine.rows}x${this.engine.cols} · ${diffCap}${portalLabel}`;
         }
 
-        // Render Board
         this.renderer.renderBoard(this.dom.boardContainer, this.engine, this.settings.theme);
-
-        // Reset and Start Timer
         this.startTimer();
     }
 
-    // Tile Click Handler
     onTileClick(r, c, clockwise = true) {
         const tile = this.engine.grid[r][c];
         if (!tile || tile.isHintLocked || tile.canonicalType === '+' || tile.canonicalType === '0') {
@@ -401,27 +424,23 @@ class PipesApp {
             this.sound.playRotateSound();
             this.moveHistory.push({ r, c, clockwise });
 
-            // Animate tile rotation in DOM
             const tileElem = this.dom.boardContainer.querySelector(`[data-row="${r}"][data-col="${c}"]`);
             if (tileElem) {
                 this.renderer.updateTileElement(tileElem, tile, this.engine);
             }
 
-            // Update all flow indicators across the board
             this.renderer.updateBoardState(this.dom.boardContainer, this.engine);
 
             if (tile.isFlowing) {
                 this.sound.playFlowSound();
             }
 
-            // Check Win Condition
             if (this.engine.isCompleted) {
                 this.handleWin();
             }
         }
     }
 
-    // Undo the last rotated tile
     undoLastMove() {
         if (this.moveHistory.length === 0 || this.engine.isCompleted) return;
         const lastMove = this.moveHistory.pop();
@@ -430,11 +449,9 @@ class PipesApp {
         this.renderer.updateBoardState(this.dom.boardContainer, this.engine);
     }
 
-    // Hint feature: solves one tile and marks it with a lightbulb
     triggerHint() {
         if (!this.engine || this.engine.isCompleted) return;
 
-        // Check if hints are exhausted
         if (this.settings.hintsAvailable <= 0) {
             this.sound.playTapSound();
             this.dom.btnHint?.classList.add('shake-error');
@@ -450,10 +467,8 @@ class PipesApp {
             this.saveSettings();
             this.updateHintBadge();
 
-            // Update visual state
             this.renderer.updateBoardState(this.dom.boardContainer, this.engine);
 
-            // Highlight the hinted tile with sparkle animation
             const tileElem = this.dom.boardContainer.querySelector(`[data-row="${hintResult.row}"][data-col="${hintResult.col}"]`);
             if (tileElem) {
                 tileElem.classList.add('hint-glow-effect');
@@ -466,20 +481,17 @@ class PipesApp {
         }
     }
 
-    // Restart current level board with fresh scramble
+    // Restore the EXACT SAME puzzle to its initial state without generating a new board
     restartLevel() {
         if (!this.engine) return;
+        this.sound.playTapSound();
         this.moveHistory = [];
-        this.engine._scrambleBoard();
-        this.engine.moves = 0;
-        this.engine.hintsUsed = 0;
-        this.engine.isCompleted = false;
-        this.engine.updateFlow();
+        this.engine.restoreInitialState();
         this.renderer.renderBoard(this.dom.boardContainer, this.engine, this.settings.theme);
         this.startTimer();
     }
 
-    // Advance to next level
+    // Advance to next level / new puzzle
     nextLevel() {
         this.currentLevelNumber++;
         if (this.engine) {
@@ -487,19 +499,48 @@ class PipesApp {
                 rows: this.engine.rows,
                 cols: this.engine.cols,
                 difficulty: this.engine.difficulty,
-                wrapEdges: this.engine.wrapEdges
+                wrapEdges: this.engine.enablePortals
             });
         } else {
             this.startQuickGame();
         }
     }
 
-    // Handle Victory
+    // Share score and link via Web Share API or Clipboard
+    shareGame(isWinScreen = false) {
+        this.sound.playTapSound();
+        const timeStr = this.formatTime(this.elapsedSeconds);
+        const dimStr = `${this.engine.rows}x${this.engine.cols}`;
+        const diffStr = this.engine.difficulty.charAt(0).toUpperCase() + this.engine.difficulty.slice(1);
+        const portalStr = this.engine.enablePortals ? 'with Portals 🌀' : '';
+
+        const text = isWinScreen
+            ? `🧩 PipeMaster - Cleared ${dimStr} ${diffStr} ${portalStr} in ${timeStr} using ${this.engine.hintsUsed} hints! Can you beat my time?`
+            : `🧩 Playing PipeMaster (${dimStr} ${diffStr})! Connect the conduits & solve the flow.`;
+
+        const shareData = {
+            title: 'PipeMaster Puzzle',
+            text: text,
+            url: 'https://github.com/yosefxk/pipemaster'
+        };
+
+        if (navigator.share) {
+            navigator.share(shareData).catch(() => {});
+        } else if (navigator.clipboard) {
+            navigator.clipboard.writeText(`${text}\n${shareData.url}`).then(() => {
+                this.showToast('📋 Copied score & game link to clipboard!');
+            }).catch(() => {
+                this.showToast('PipeMaster: https://github.com/yosefxk/pipemaster');
+            });
+        } else {
+            this.showToast('PipeMaster: https://github.com/yosefxk/pipemaster');
+        }
+    }
+
     handleWin() {
         this.stopTimer();
         this.sound.playWinSound();
 
-        // Calculate Stars
         let stars = 3;
         if (this.engine.hintsUsed >= 3 || this.elapsedSeconds > 180) {
             stars = 1;
@@ -507,13 +548,11 @@ class PipesApp {
             stars = 2;
         }
 
-        // Reward player with bonus hints on win!
         const earnedHints = (stars >= 3) ? 2 : 1;
         this.settings.hintsAvailable = (this.settings.hintsAvailable || 0) + earnedHints;
         this.saveSettings();
         this.updateHintBadge();
 
-        // Update stats
         this.stats.levelsCompleted++;
         const timeStr = this.formatTime(this.elapsedSeconds);
         const boardKey = `${this.engine.rows}x${this.engine.cols}_${this.engine.difficulty}`;
@@ -523,7 +562,6 @@ class PipesApp {
         }
         this.saveStats();
 
-        // Fill Win Modal Content
         if (this.dom.winTime) this.dom.winTime.textContent = timeStr;
         if (this.dom.winHints) this.dom.winHints.textContent = this.engine.hintsUsed;
         if (this.dom.winMoves) this.dom.winMoves.textContent = this.engine.moves;
@@ -531,7 +569,6 @@ class PipesApp {
             this.dom.winStars.innerHTML = '★'.repeat(stars) + '☆'.repeat(3 - stars);
         }
 
-        // Trigger victory celebration glow on board
         this.dom.boardContainer.classList.add('level-won-celebration');
         setTimeout(() => {
             this.dom.boardContainer.classList.remove('level-won-celebration');
@@ -539,7 +576,6 @@ class PipesApp {
         }, 600);
     }
 
-    // Timer controls
     startTimer() {
         this.stopTimer();
         this.elapsedSeconds = 0;
@@ -583,5 +619,4 @@ class PipesApp {
     }
 }
 
-// Global instance initialization
 window.pipesApp = new PipesApp();
