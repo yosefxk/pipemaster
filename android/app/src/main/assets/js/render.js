@@ -1,7 +1,7 @@
 /**
  * SVG Pipe Tile Renderer
  * Generates crisp, high-contrast double-track pipe graphics,
- * source hubs, terminal bulbs, glowing water flow, and hint indicators.
+ * source hubs, terminal bulbs, glowing water flow, and lightbulb hint indicators.
  */
 
 class PipeRenderer {
@@ -18,8 +18,6 @@ class PipeRenderer {
         container.style.gridTemplateRows = `repeat(${engine.rows}, 1fr)`;
         container.style.gridTemplateColumns = `repeat(${engine.cols}, 1fr)`;
 
-        // Calculate aspect ratio constraint to ensure square tiles fit mobile screens
-        const maxDimension = Math.max(engine.rows, engine.cols);
         container.style.setProperty('--grid-rows', engine.rows);
         container.style.setProperty('--grid-cols', engine.cols);
 
@@ -33,7 +31,7 @@ class PipeRenderer {
     }
 
     /**
-     * Update an existing rendered board without full DOM recreation for performance
+     * Update an existing rendered board without recreating DOM elements
      */
     updateBoardState(container, engine) {
         for (let r = 0; r < engine.rows; r++) {
@@ -59,19 +57,23 @@ class PipeRenderer {
         if (tile.isSource) div.classList.add('is-source');
         if (tile.isFlowing) div.classList.add('is-flowing');
         if (tile.isHintLocked) div.classList.add('is-locked');
-        if (tile.currentMask === 0) div.classList.add('is-empty');
+        if (tile.canonicalType === '0') div.classList.add('is-empty');
 
         // SVG wrapper with smooth rotation
         const svg = this.generateTileSVG(tile);
         div.appendChild(svg);
 
-        // Lock / Hint Pin Badge
-        const lockBadge = document.createElement('div');
-        lockBadge.className = 'tile-lock-badge';
-        lockBadge.innerHTML = `<svg viewBox="0 0 24 24" width="12" height="12"><path fill="currentColor" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>`;
-        div.appendChild(lockBadge);
+        // Lightbulb Hint Badge 💡
+        const hintBadge = document.createElement('div');
+        hintBadge.className = 'tile-hint-badge';
+        hintBadge.innerHTML = `
+            <svg viewBox="0 0 24 24" width="13" height="13">
+                <path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7zm-2 18h4v1c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-1zm-1-4v-1.12l-.65-.45C6.9 13.41 6 11.78 6 9c0-3.31 2.69-6 6-6s6 2.69 6 6c0 2.78-.9 4.41-2.35 5.43l-.65.45V16H9z"/>
+            </svg>
+        `;
+        div.appendChild(hintBadge);
 
-        // Torus / Wrap indicator pips if wrapEdges is enabled
+        // Wrap indicator pips if wrapEdges is enabled
         if (engine.wrapEdges) {
             this.appendWrapIndicators(div, tile, engine);
         }
@@ -88,11 +90,8 @@ class PipeRenderer {
 
         const svg = div.querySelector('.pipe-svg');
         if (svg) {
-            // Apply CSS rotation transform
+            // Apply single CSS rotation transform
             svg.style.transform = `rotate(${tile.rotationAngle}deg)`;
-            
-            // Re-render internal paths to reflect new currentMask
-            this.populateSVGPaths(svg, tile);
         }
 
         if (engine.wrapEdges) {
@@ -101,7 +100,7 @@ class PipeRenderer {
     }
 
     /**
-     * Generate SVG for a pipe tile
+     * Generate SVG for a pipe tile based on its canonical base type
      */
     generateTileSVG(tile) {
         const svg = document.createElementNS(this.svgNS, 'svg');
@@ -109,33 +108,13 @@ class PipeRenderer {
         svg.setAttribute('class', 'pipe-svg');
         svg.style.transform = `rotate(${tile.rotationAngle}deg)`;
 
-        this.populateSVGPaths(svg, tile);
-        return svg;
-    }
-
-    /**
-     * Build internal vector paths for the double-line pipe aesthetic
-     */
-    populateSVGPaths(svg, tile) {
-        svg.innerHTML = '';
-        const mask = tile.currentMask;
-        if (mask === 0) return;
-
         const g = document.createElementNS(this.svgNS, 'g');
         g.setAttribute('class', 'pipe-group');
 
-        const N = Boolean(mask & DIRS.NORTH);
-        const E = Boolean(mask & DIRS.EAST);
-        const S = Boolean(mask & DIRS.SOUTH);
-        const W = Boolean(mask & DIRS.WEST);
-        const count = (N ? 1 : 0) + (E ? 1 : 0) + (S ? 1 : 0) + (W ? 1 : 0);
+        const type = tile.canonicalType;
+        const W_OUTER = 16; // Half-width offset for pipe boundaries (lines at 34 and 66)
 
-        // Pipe geometry constants
-        const W_INNER = 8;   // Half-width of inner core channel
-        const W_OUTER = 16;  // Half-width of outer pipe boundary
-        const CORNER_R = 34; // Corner curve radius
-
-        // 1. Source Hub (Central Node with circular cutout)
+        // 1. Source Hub Base
         if (tile.isSource) {
             const hub = document.createElementNS(this.svgNS, 'circle');
             hub.setAttribute('cx', '50');
@@ -151,14 +130,28 @@ class PipeRenderer {
             hubInner.setAttribute('class', 'pipe-source-core');
             g.appendChild(hubInner);
 
-            // Stems leading to openings
-            if (N) this.drawStem(g, 'N', W_OUTER);
-            if (E) this.drawStem(g, 'E', W_OUTER);
-            if (S) this.drawStem(g, 'S', W_OUTER);
-            if (W) this.drawStem(g, 'W', W_OUTER);
+            // Connect stems based on canonical type
+            if (type === '1') {
+                this.drawStem(g, 'N', W_OUTER);
+            } else if (type === 'I') {
+                this.drawStem(g, 'N', W_OUTER);
+                this.drawStem(g, 'S', W_OUTER);
+            } else if (type === 'L') {
+                this.drawStem(g, 'N', W_OUTER);
+                this.drawStem(g, 'E', W_OUTER);
+            } else if (type === 'T') {
+                this.drawStem(g, 'W', W_OUTER);
+                this.drawStem(g, 'N', W_OUTER);
+                this.drawStem(g, 'E', W_OUTER);
+            } else if (type === '+') {
+                this.drawStem(g, 'N', W_OUTER);
+                this.drawStem(g, 'E', W_OUTER);
+                this.drawStem(g, 'S', W_OUTER);
+                this.drawStem(g, 'W', W_OUTER);
+            }
         }
-        // 2. Terminal Bulb (Single connection cap)
-        else if (count === 1) {
+        // 2. Terminal Bulb (Type '1') - Base connects NORTH
+        else if (type === '1') {
             const bulbOuter = document.createElementNS(this.svgNS, 'circle');
             bulbOuter.setAttribute('cx', '50');
             bulbOuter.setAttribute('cy', '50');
@@ -173,107 +166,54 @@ class PipeRenderer {
             bulbInner.setAttribute('class', 'pipe-bulb-inner');
             g.appendChild(bulbInner);
 
-            if (N) this.drawStem(g, 'N', W_OUTER);
-            if (E) this.drawStem(g, 'E', W_OUTER);
-            if (S) this.drawStem(g, 'S', W_OUTER);
-            if (W) this.drawStem(g, 'W', W_OUTER);
+            this.drawStem(g, 'N', W_OUTER);
         }
-        // 3. Straight Pipe (N-S or E-W)
-        else if (count === 2 && ((N && S) || (E && W))) {
+        // 3. Straight Pipe (Type 'I') - Base connects NORTH and SOUTH
+        else if (type === 'I') {
             const path = document.createElementNS(this.svgNS, 'path');
-            if (N && S) {
-                // Vertical straight lines
-                path.setAttribute('d', `
-                    M ${50 - W_OUTER} 0 L ${50 - W_OUTER} 100
-                    M ${50 + W_OUTER} 0 L ${50 + W_OUTER} 100
-                `);
-            } else {
-                // Horizontal straight lines
-                path.setAttribute('d', `
-                    M 0 ${50 - W_OUTER} L 100 ${50 - W_OUTER}
-                    M 0 ${50 + W_OUTER} L 100 ${50 + W_OUTER}
-                `);
-            }
+            path.setAttribute('d', `
+                M 34 0 L 34 100
+                M 66 0 L 66 100
+            `);
             path.setAttribute('class', 'pipe-line');
             g.appendChild(path);
         }
-        // 4. Elbow / Corner (N-E, E-S, S-W, W-N)
-        else if (count === 2) {
+        // 4. Elbow / Corner (Type 'L') - Base connects NORTH and EAST
+        else if (type === 'L') {
             const path = document.createElementNS(this.svgNS, 'path');
-            let d = '';
-            if (N && E) {
-                d = `
-                    M ${50 - W_OUTER} 0 A ${50 + W_OUTER} ${50 + W_OUTER} 0 0 0 100 ${50 + W_OUTER}
-                    M ${50 + W_OUTER} 0 A ${50 - W_OUTER} ${50 - W_OUTER} 0 0 0 100 ${50 - W_OUTER}
-                `;
-            } else if (E && S) {
-                d = `
-                    M 100 ${50 - W_OUTER} A ${50 + W_OUTER} ${50 + W_OUTER} 0 0 0 ${50 - W_OUTER} 100
-                    M 100 ${50 + W_OUTER} A ${50 - W_OUTER} ${50 - W_OUTER} 0 0 0 ${50 + W_OUTER} 100
-                `;
-            } else if (S && W) {
-                d = `
-                    M ${50 + W_OUTER} 100 A ${50 + W_OUTER} ${50 + W_OUTER} 0 0 0 0 ${50 - W_OUTER}
-                    M ${50 - W_OUTER} 100 A ${50 - W_OUTER} ${50 - W_OUTER} 0 0 0 0 ${50 + W_OUTER}
-                `;
-            } else if (W && N) {
-                d = `
-                    M 0 ${50 + W_OUTER} A ${50 + W_OUTER} ${50 + W_OUTER} 0 0 0 ${50 + W_OUTER} 0
-                    M 0 ${50 - W_OUTER} A ${50 - W_OUTER} ${50 - W_OUTER} 0 0 0 ${50 - W_OUTER} 0
-                `;
-            }
-            path.setAttribute('d', d);
+            path.setAttribute('d', `
+                M 34 0 A 66 66 0 0 0 100 66
+                M 66 0 A 34 34 0 0 0 100 34
+            `);
             path.setAttribute('class', 'pipe-line');
             g.appendChild(path);
         }
-        // 5. T-Junction (3 connections)
-        else if (count === 3) {
+        // 5. T-Junction (Type 'T') - Base connects WEST, NORTH, EAST
+        else if (type === 'T') {
             const path = document.createElementNS(this.svgNS, 'path');
-            let d = '';
-            if (!N) { // E, S, W
-                d = `
-                    M 0 ${50 - W_OUTER} L 100 ${50 - W_OUTER}
-                    M 0 ${50 + W_OUTER} A ${50 - W_OUTER} ${50 - W_OUTER} 0 0 0 ${50 - W_OUTER} 100
-                    M 100 ${50 + W_OUTER} A ${50 - W_OUTER} ${50 - W_OUTER} 0 0 1 ${50 + W_OUTER} 100
-                `;
-            } else if (!E) { // N, S, W
-                d = `
-                    M ${50 + W_OUTER} 0 L ${50 + W_OUTER} 100
-                    M ${50 - W_OUTER} 0 A ${50 - W_OUTER} ${50 - W_OUTER} 0 0 1 0 ${50 - W_OUTER}
-                    M ${50 - W_OUTER} 100 A ${50 - W_OUTER} ${50 - W_OUTER} 0 0 0 0 ${50 + W_OUTER}
-                `;
-            } else if (!S) { // N, E, W
-                d = `
-                    M 0 ${50 + W_OUTER} L 100 ${50 + W_OUTER}
-                    M 0 ${50 - W_OUTER} A ${50 - W_OUTER} ${50 - W_OUTER} 0 0 1 ${50 - W_OUTER} 0
-                    M 100 ${50 - W_OUTER} A ${50 - W_OUTER} ${50 - W_OUTER} 0 0 0 ${50 + W_OUTER} 0
-                `;
-            } else if (!W) { // N, E, S
-                d = `
-                    M ${50 - W_OUTER} 0 L ${50 - W_OUTER} 100
-                    M ${50 + W_OUTER} 0 A ${50 - W_OUTER} ${50 - W_OUTER} 0 0 0 100 ${50 - W_OUTER}
-                    M ${50 + W_OUTER} 100 A ${50 - W_OUTER} ${50 - W_OUTER} 0 0 1 100 ${50 + W_OUTER}
-                `;
-            }
-            path.setAttribute('d', d);
+            path.setAttribute('d', `
+                M 0 66 L 100 66
+                M 0 34 A 34 34 0 0 1 34 0
+                M 66 0 A 34 34 0 0 1 100 34
+            `);
             path.setAttribute('class', 'pipe-line');
             g.appendChild(path);
         }
-        // 6. Cross / 4-Way
-        else if (count === 4) {
+        // 6. Cross (Type '+') - Base connects all 4 directions
+        else if (type === '+') {
             const path = document.createElementNS(this.svgNS, 'path');
-            const d = `
-                M ${50 - W_OUTER} 0 A ${50 - W_OUTER} ${50 - W_OUTER} 0 0 1 0 ${50 - W_OUTER}
-                M 0 ${50 + W_OUTER} A ${50 - W_OUTER} ${50 - W_OUTER} 0 0 1 ${50 - W_OUTER} 100
-                M ${50 + W_OUTER} 100 A ${50 - W_OUTER} ${50 - W_OUTER} 0 0 1 100 ${50 + W_OUTER}
-                M 100 ${50 - W_OUTER} A ${50 - W_OUTER} ${50 - W_OUTER} 0 0 1 ${50 + W_OUTER} 0
-            `;
-            path.setAttribute('d', d);
+            path.setAttribute('d', `
+                M 0 34 A 34 34 0 0 1 34 0
+                M 66 0 A 34 34 0 0 1 100 34
+                M 100 66 A 34 34 0 0 1 66 100
+                M 34 100 A 34 34 0 0 1 0 66
+            `);
             path.setAttribute('class', 'pipe-line');
             g.appendChild(path);
         }
 
         svg.appendChild(g);
+        return svg;
     }
 
     /**
@@ -283,13 +223,13 @@ class PipeRenderer {
         const path = document.createElementNS(this.svgNS, 'path');
         let d = '';
         if (dir === 'N') {
-            d = `M ${50 - w} 0 L ${50 - w} 30 M ${50 + w} 0 L ${50 + w} 30`;
+            d = `M 34 0 L 34 30 M 66 0 L 66 30`;
         } else if (dir === 'E') {
-            d = `M 70 ${50 - w} L 100 ${50 - w} M 70 ${50 + w} L 100 ${50 + w}`;
+            d = `M 70 34 L 100 34 M 70 66 L 100 66`;
         } else if (dir === 'S') {
-            d = `M ${50 - w} 70 L ${50 - w} 100 M ${50 + w} 70 L ${50 + w} 100`;
+            d = `M 34 70 L 34 100 M 66 70 L 66 100`;
         } else if (dir === 'W') {
-            d = `M 0 ${50 - w} L 30 ${50 - w} M 0 ${50 + w} L 30 ${50 + w}`;
+            d = `M 0 34 L 30 34 M 0 66 L 30 66`;
         }
         path.setAttribute('d', d);
         path.setAttribute('class', 'pipe-line stem');

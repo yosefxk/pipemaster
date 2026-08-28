@@ -27,6 +27,26 @@ const DELTA = {
     [DIRS.WEST]:  [ 0, -1]
 };
 
+// Map each 4-bit connection mask to its canonical base type and initial base rotation
+const CANONICAL_MAP = {
+    0:  { type: '0', baseRot: 0 },
+    1:  { type: '1', baseRot: 0 },
+    2:  { type: '1', baseRot: 90 },
+    4:  { type: '1', baseRot: 180 },
+    8:  { type: '1', baseRot: 270 },
+    5:  { type: 'I', baseRot: 0 },
+    10: { type: 'I', baseRot: 90 },
+    3:  { type: 'L', baseRot: 0 },
+    6:  { type: 'L', baseRot: 90 },
+    12: { type: 'L', baseRot: 180 },
+    9:  { type: 'L', baseRot: 270 },
+    11: { type: 'T', baseRot: 0 },
+    7:  { type: 'T', baseRot: 90 },
+    14: { type: 'T', baseRot: 180 },
+    13: { type: 'T', baseRot: 270 },
+    15: { type: '+', baseRot: 0 }
+};
+
 // Rotate bitmask 90 deg clockwise
 function rotateMaskCW(mask) {
     return ((mask << 1) & 0b1111) | ((mask >> 3) & 0b0001);
@@ -44,7 +64,10 @@ class PipeTile {
         this.col = col;
         this.solutionMask = solutionMask; // Target bitmask that completes the puzzle
         this.currentMask = solutionMask;   // Current orientation bitmask
-        this.rotationAngle = 0;           // Visual display rotation in degrees
+        
+        const info = CANONICAL_MAP[solutionMask] || { type: '0', baseRot: 0 };
+        this.canonicalType = info.type;    // '0', '1', 'I', 'L', 'T', '+'
+        this.rotationAngle = info.baseRot; // Visual display rotation in degrees
         this.isSource = isSource;         // Whether this tile is the water/energy pump
         this.isFlowing = false;          // Whether water reaches this tile
         this.isHintLocked = false;       // Whether this tile was solved via hint & locked
@@ -56,42 +79,30 @@ class PipeTile {
         };
     }
 
-    // Get the base canonical piece type ('0', '1', 'I', 'L', 'T', '+')
     getType() {
-        const mask = this.currentMask;
-        const count = ((mask & 1) ? 1 : 0) + ((mask & 2) ? 1 : 0) + 
-                      ((mask & 4) ? 1 : 0) + ((mask & 8) ? 1 : 0);
-        if (count === 0) return '0';
-        if (count === 1) return '1'; // End cap / terminal bulb
-        if (count === 4) return '+'; // Cross
-        if (count === 3) return 'T'; // T-junction
-        if ((mask === (DIRS.NORTH | DIRS.SOUTH)) || (mask === (DIRS.EAST | DIRS.WEST))) {
-            return 'I'; // Straight line
-        }
-        return 'L'; // Elbow / Corner
+        return this.canonicalType;
     }
 
-    // Rotate tile clockwise
+    // Rotate tile clockwise by 90 degrees
     rotateCW() {
         if (this.isHintLocked) return false;
         this.currentMask = rotateMaskCW(this.currentMask);
-        this.rotationAngle = (this.rotationAngle + 90) % 360;
+        this.rotationAngle += 90;
         return true;
     }
 
-    // Rotate tile counter-clockwise
+    // Rotate tile counter-clockwise by 90 degrees
     rotateCCW() {
         if (this.isHintLocked) return false;
         this.currentMask = rotateMaskCCW(this.currentMask);
-        this.rotationAngle = (this.rotationAngle - 90 + 360) % 360;
+        this.rotationAngle -= 90;
         return true;
     }
 
     // Check if current orientation matches the solution (considering symmetry)
     isCorrect() {
-        const type = this.getType();
-        if (type === '+' || type === '0') return true;
-        if (type === 'I') {
+        if (this.canonicalType === '+' || this.canonicalType === '0') return true;
+        if (this.canonicalType === 'I') {
             return this.currentMask === this.solutionMask || 
                    this.currentMask === rotateMaskCW(rotateMaskCW(this.solutionMask));
         }
@@ -102,12 +113,11 @@ class PipeTile {
 // Game Board and Puzzle Generator
 class PipesGameEngine {
     constructor(options = {}) {
-        this.rows = options.rows || 5;
-        this.cols = options.cols || 5;
-        this.difficulty = options.difficulty || 'medium'; // 'easy', 'medium', 'hard', 'master'
-        this.wrapEdges = options.wrapEdges ?? false;      // Toroidal wrap-around edges
-        this.sourcePos = options.sourcePos || null;       // [r, c] or null for auto-select
-        this.seed = options.seed || null;
+        this.rows = options.rows || 6;
+        this.cols = options.cols || 6;
+        this.difficulty = options.difficulty || 'medium';
+        this.wrapEdges = options.wrapEdges ?? false;
+        this.sourcePos = options.sourcePos || null;
         
         this.grid = [];
         this.sourceTile = null;
@@ -125,7 +135,7 @@ class PipesGameEngine {
         this.isCompleted = false;
         this.grid = [];
 
-        // 1. Pick or calculate Source position
+        // 1. Pick Source position (near center)
         let sr = this.sourcePos ? this.sourcePos[0] : Math.floor(this.rows / 2);
         let sc = this.sourcePos ? this.sourcePos[1] : Math.floor(this.cols / 2);
         sr = Math.max(0, Math.min(this.rows - 1, sr));
@@ -181,7 +191,6 @@ class PipesGameEngine {
         let connectedCount = 1;
         const totalCells = rows * cols;
 
-        // Frontier edges: [{ fromR, fromC, toR, toC, dir, oppDir }]
         const frontier = [];
 
         const addFrontierOf = (r, c) => {
@@ -224,7 +233,6 @@ class PipesGameEngine {
             masks[edge.toR][edge.toC] |= edge.oppDir;
             connectedCount++;
 
-            // Add new frontier edges
             addFrontierOf(edge.toR, edge.toC);
         }
 
@@ -282,7 +290,7 @@ class PipesGameEngine {
                 const r = Math.floor(Math.random() * this.rows);
                 const c = Math.floor(Math.random() * this.cols);
                 const tile = this.grid[r][c];
-                if (tile.getType() !== '+' && tile.getType() !== '0') {
+                if (tile.canonicalType !== '+' && tile.canonicalType !== '0') {
                     tile.rotateCW();
                 }
             }
@@ -423,8 +431,7 @@ class PipesGameEngine {
 
         let safety = 0;
         while (!targetTile.isCorrect() && safety < 4) {
-            targetTile.currentMask = rotateMaskCW(targetTile.currentMask);
-            targetTile.rotationAngle = (targetTile.rotationAngle + 90) % 360;
+            targetTile.rotateCW();
             safety++;
         }
 
@@ -454,5 +461,5 @@ class PipesGameEngine {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { DIRS, OPPOSITE, DELTA, PipeTile, PipesGameEngine };
+    module.exports = { DIRS, OPPOSITE, DELTA, CANONICAL_MAP, PipeTile, PipesGameEngine };
 }

@@ -26,7 +26,6 @@ class PipesApp {
         // DOM elements cache
         this.dom = {};
         
-        // Initialize when DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.init());
         } else {
@@ -34,7 +33,6 @@ class PipesApp {
         }
     }
 
-    // Default configuration
     getDefaultSettings() {
         return {
             defaultDifficulty: 'medium',
@@ -44,7 +42,7 @@ class PipesApp {
             theme: 'minimal-dark',
             soundEnabled: true,
             hapticsEnabled: true,
-            hintsAvailable: 50
+            hintsAvailable: 25
         };
     }
 
@@ -325,10 +323,19 @@ class PipesApp {
         if (this.dom.settingTheme) this.dom.settingTheme.value = this.settings.theme;
         if (this.dom.settingSound) this.dom.settingSound.checked = this.settings.soundEnabled;
         if (this.dom.settingHaptics) this.dom.settingHaptics.checked = this.settings.hapticsEnabled;
-        if (this.dom.hintBadge) this.dom.hintBadge.textContent = this.settings.hintsAvailable;
+        this.updateHintBadge();
         
         this.sound.soundEnabled = this.settings.soundEnabled;
         this.sound.hapticsEnabled = this.settings.hapticsEnabled;
+    }
+
+    updateHintBadge() {
+        if (this.dom.hintBadge) {
+            this.dom.hintBadge.textContent = this.settings.hintsAvailable;
+        }
+        if (this.dom.btnHint) {
+            this.dom.btnHint.classList.toggle('disabled', this.settings.hintsAvailable <= 0);
+        }
     }
 
     applyTheme(themeName) {
@@ -369,7 +376,6 @@ class PipesApp {
         this.moveHistory = [];
         this.showScreen('screen-game');
         
-        // Update Title
         const wrapLabel = options.wrapEdges ? ' ✦ Wrap' : '';
         const diffCap = options.difficulty.charAt(0).toUpperCase() + options.difficulty.slice(1);
         if (this.dom.levelTitle) {
@@ -386,7 +392,7 @@ class PipesApp {
     // Tile Click Handler
     onTileClick(r, c, clockwise = true) {
         const tile = this.engine.grid[r][c];
-        if (!tile || tile.isHintLocked || tile.getType() === '+' || tile.getType() === '0') {
+        if (!tile || tile.isHintLocked || tile.canonicalType === '+' || tile.canonicalType === '0') {
             return;
         }
 
@@ -404,7 +410,6 @@ class PipesApp {
             // Update all flow indicators across the board
             this.renderer.updateBoardState(this.dom.boardContainer, this.engine);
 
-            // If newly completed flow sound
             if (tile.isFlowing) {
                 this.sound.playFlowSound();
             }
@@ -420,25 +425,30 @@ class PipesApp {
     undoLastMove() {
         if (this.moveHistory.length === 0 || this.engine.isCompleted) return;
         const lastMove = this.moveHistory.pop();
-        // Rotate in reverse direction
         this.engine.rotateTile(lastMove.r, lastMove.c, !lastMove.clockwise);
         this.sound.playRotateSound();
         this.renderer.updateBoardState(this.dom.boardContainer, this.engine);
     }
 
-    // Hint feature: solves one tile and locks it
+    // Hint feature: solves one tile and marks it with a lightbulb
     triggerHint() {
         if (!this.engine || this.engine.isCompleted) return;
+
+        // Check if hints are exhausted
+        if (this.settings.hintsAvailable <= 0) {
+            this.sound.playTapSound();
+            this.dom.btnHint?.classList.add('shake-error');
+            setTimeout(() => this.dom.btnHint?.classList.remove('shake-error'), 400);
+            return;
+        }
 
         const hintResult = this.engine.applyHint();
         if (hintResult) {
             this.sound.playHintSound();
 
-            if (this.settings.hintsAvailable > 0) {
-                this.settings.hintsAvailable--;
-                this.saveSettings();
-                if (this.dom.hintBadge) this.dom.hintBadge.textContent = this.settings.hintsAvailable;
-            }
+            this.settings.hintsAvailable--;
+            this.saveSettings();
+            this.updateHintBadge();
 
             // Update visual state
             this.renderer.updateBoardState(this.dom.boardContainer, this.engine);
@@ -489,6 +499,20 @@ class PipesApp {
         this.stopTimer();
         this.sound.playWinSound();
 
+        // Calculate Stars
+        let stars = 3;
+        if (this.engine.hintsUsed >= 3 || this.elapsedSeconds > 180) {
+            stars = 1;
+        } else if (this.engine.hintsUsed >= 1 || this.elapsedSeconds > 90) {
+            stars = 2;
+        }
+
+        // Reward player with bonus hints on win!
+        const earnedHints = (stars >= 3) ? 2 : 1;
+        this.settings.hintsAvailable = (this.settings.hintsAvailable || 0) + earnedHints;
+        this.saveSettings();
+        this.updateHintBadge();
+
         // Update stats
         this.stats.levelsCompleted++;
         const timeStr = this.formatTime(this.elapsedSeconds);
@@ -498,14 +522,6 @@ class PipesApp {
             this.stats.bestTimes[boardKey] = this.elapsedSeconds;
         }
         this.saveStats();
-
-        // Calculate Stars
-        let stars = 3;
-        if (this.engine.hintsUsed >= 3 || this.elapsedSeconds > 180) {
-            stars = 1;
-        } else if (this.engine.hintsUsed >= 1 || this.elapsedSeconds > 90) {
-            stars = 2;
-        }
 
         // Fill Win Modal Content
         if (this.dom.winTime) this.dom.winTime.textContent = timeStr;

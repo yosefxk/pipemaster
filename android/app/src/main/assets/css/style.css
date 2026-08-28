@@ -1,6 +1,6 @@
 /* ==========================================================================
-   Pipes Puzzle Mobile-First Stylesheet
-   Inspired by Minimalist Dark & Neon Tube Aesthetics
+   PipeMaster Mobile-First Stylesheet
+   Minimalist Dark Slate with Transparent Grid & Neon Glow
    ========================================================================== */
 
 :root {
@@ -16,10 +16,12 @@
     --pipe-stroke: #8694a6;
     --pipe-fill: transparent;
     --pipe-flow-stroke: #38bdf8;
-    --pipe-flow-glow: rgba(56, 189, 248, 0.45);
+    --pipe-flow-glow: rgba(56, 189, 248, 0.5);
+    --grid-border: rgba(255, 255, 255, 0.07);
+    --grid-cell-bg: rgba(255, 255, 255, 0.025);
     --border-color: #2e3c51;
     --danger-color: #f43f5e;
-    --star-gold: #fbbf24;
+    --lightbulb-gold: #facc15;
     --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --font-mono: "SF Mono", "Roboto Mono", Consolas, Menlo, monospace;
 }
@@ -33,9 +35,11 @@ body.theme-cyber-neon {
     --text-secondary: #b8c1ec;
     --pipe-stroke: #475569;
     --pipe-flow-stroke: #00f0ff;
-    --pipe-flow-glow: rgba(0, 240, 255, 0.6);
+    --pipe-flow-glow: rgba(0, 240, 255, 0.65);
     --source-hub-color: #f72585;
     --accent-color: #00f0ff;
+    --grid-border: rgba(0, 240, 255, 0.08);
+    --grid-cell-bg: rgba(0, 240, 255, 0.015);
 }
 
 body.theme-blueprint {
@@ -46,9 +50,11 @@ body.theme-blueprint {
     --text-secondary: #8892b0;
     --pipe-stroke: #4c668c;
     --pipe-flow-stroke: #64ffda;
-    --pipe-flow-glow: rgba(100, 255, 218, 0.5);
+    --pipe-flow-glow: rgba(100, 255, 218, 0.55);
     --source-hub-color: #ffd166;
     --accent-color: #64ffda;
+    --grid-border: rgba(100, 255, 218, 0.09);
+    --grid-cell-bg: rgba(100, 255, 218, 0.02);
 }
 
 body.theme-zen-slate {
@@ -59,9 +65,11 @@ body.theme-zen-slate {
     --text-secondary: #94a3b8;
     --pipe-stroke: #78716c;
     --pipe-flow-stroke: #10b981;
-    --pipe-flow-glow: rgba(16, 185, 129, 0.5);
+    --pipe-flow-glow: rgba(16, 185, 129, 0.55);
     --source-hub-color: #f59e0b;
     --accent-color: #10b981;
+    --grid-border: rgba(16, 185, 129, 0.08);
+    --grid-cell-bg: rgba(16, 185, 129, 0.02);
 }
 
 /* Base Reset & Mobile Screen Locking */
@@ -229,7 +237,7 @@ html, body {
 }
 
 /* ==========================================================================
-   2. GAME SCREEN & HUD (Screenshot Accuracy)
+   2. GAME SCREEN & HUD
    ========================================================================== */
 
 #screen-game {
@@ -240,7 +248,6 @@ html, body {
     padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 20px) 16px;
 }
 
-/* Header matching Screenshot 1 */
 .game-header {
     display: flex;
     align-items: center;
@@ -296,7 +303,10 @@ html, body {
     letter-spacing: 1px;
 }
 
-/* Board Center Wrapper */
+/* ==========================================================================
+   3. BOARD & TRANSPARENT GRID
+   ========================================================================== */
+
 .board-wrapper {
     flex: 1;
     display: flex;
@@ -308,20 +318,24 @@ html, body {
     overflow: hidden;
 }
 
+/* Outer Grid Container with Subtle Transparent Frame */
 .pipes-grid {
     display: grid;
-    gap: 0px;
+    gap: 3px; /* Clean spacing between cells */
+    padding: 4px;
     width: 100%;
     max-width: min(88vw, 480px);
     aspect-ratio: var(--grid-cols) / var(--grid-rows);
     max-height: 100%;
     margin: auto;
     position: relative;
-    border-radius: 12px;
-    background: rgba(16, 21, 29, 0.4);
+    border-radius: 14px;
+    background: rgba(16, 21, 29, 0.65);
+    border: 1px solid var(--grid-border);
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.4);
 }
 
-/* Pipe Tile Element */
+/* Subtle Transparent Tile Cells (Clear Beginning & Ending of tiles) */
 .pipe-tile {
     position: relative;
     width: 100%;
@@ -330,9 +344,19 @@ html, body {
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    transition: background 0.2s ease;
+    background: var(--grid-cell-bg);
+    border: 1px solid var(--grid-border);
+    border-radius: 6px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    overflow: visible;
 }
 
+.pipe-tile:active {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+/* SVG Pipe Vector Elements */
 .pipe-svg {
     width: 100%;
     height: 100%;
@@ -341,7 +365,6 @@ html, body {
     overflow: visible;
 }
 
-/* Pipe Vector Lines */
 .pipe-line {
     fill: none;
     stroke: var(--pipe-stroke);
@@ -351,13 +374,13 @@ html, body {
     transition: stroke 0.2s ease, filter 0.2s ease;
 }
 
-/* Flowing State */
+/* Active Flow State */
 .pipe-tile.is-flowing .pipe-line {
     stroke: var(--pipe-flow-stroke);
     filter: drop-shadow(0 0 5px var(--pipe-flow-glow));
 }
 
-/* Source Hub */
+/* Central Source Hub */
 .pipe-source-hub {
     fill: var(--source-hub-color);
     transition: fill 0.2s ease;
@@ -384,32 +407,55 @@ html, body {
     filter: drop-shadow(0 0 5px var(--pipe-flow-glow));
 }
 
-/* Hint Lock Pin */
-.tile-lock-badge {
+/* ==========================================================================
+   4. LIGHTBULB HINT BADGE & HINT CONTROLS
+   ========================================================================== */
+
+.tile-hint-badge {
     position: absolute;
-    top: 4px;
-    right: 4px;
-    color: var(--star-gold);
+    top: 3px;
+    right: 3px;
+    width: 16px;
+    height: 16px;
+    color: var(--lightbulb-gold);
+    background: rgba(250, 204, 21, 0.15);
+    border: 1px solid rgba(250, 204, 21, 0.4);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     opacity: 0;
-    transform: scale(0.6);
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transform: scale(0.5);
+    transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2);
     pointer-events: none;
+    box-shadow: 0 0 8px rgba(250, 204, 21, 0.5);
+    z-index: 5;
 }
 
-.pipe-tile.is-locked .tile-lock-badge {
-    opacity: 0.9;
+.pipe-tile.is-locked .tile-hint-badge {
+    opacity: 1;
     transform: scale(1);
 }
 
-/* Hint Sparkle Effect */
 @keyframes hintPulse {
     0% { transform: scale(1); filter: brightness(1); }
-    50% { transform: scale(1.15); filter: brightness(2) drop-shadow(0 0 10px #fbbf24); }
+    50% { transform: scale(1.18); filter: brightness(2) drop-shadow(0 0 12px var(--lightbulb-gold)); }
     100% { transform: scale(1); filter: brightness(1); }
 }
 
 .hint-glow-effect {
     animation: hintPulse 0.8s ease-out;
+}
+
+/* Shake Animation when Hints Exhausted */
+@keyframes shakeX {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+}
+
+.shake-error {
+    animation: shakeX 0.35s ease-in-out;
 }
 
 /* Wrap-around Border Portal Pips */
@@ -419,16 +465,16 @@ html, body {
     height: 6px;
     background: var(--accent-color);
     border-radius: 50%;
-    opacity: 0.6;
+    opacity: 0.65;
     box-shadow: 0 0 6px var(--accent-color);
 }
-.wrap-north { top: -3px; left: 50%; transform: translateX(-50%); }
-.wrap-south { bottom: -3px; left: 50%; transform: translateX(-50%); }
-.wrap-west  { left: -3px; top: 50%; transform: translateY(-50%); }
-.wrap-east  { right: -3px; top: 50%; transform: translateY(-50%); }
+.wrap-north { top: -4px; left: 50%; transform: translateX(-50%); }
+.wrap-south { bottom: -4px; left: 50%; transform: translateX(-50%); }
+.wrap-west  { left: -4px; top: 50%; transform: translateY(-50%); }
+.wrap-east  { right: -4px; top: 50%; transform: translateY(-50%); }
 
 /* ==========================================================================
-   3. BOTTOM CONTROLS & FLOATING ACTION BUTTON (Screenshot Accuracy)
+   5. BOTTOM CONTROLS & FAB
    ========================================================================== */
 
 .game-bottom-bar {
@@ -452,12 +498,16 @@ html, body {
     color: var(--text-primary);
     cursor: pointer;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    transition: transform 0.15s ease, background 0.15s ease;
+    transition: transform 0.15s ease, background 0.15s ease, opacity 0.2s ease;
 }
 
 .fab-hint-btn:active {
     transform: scale(0.92);
     background: var(--bg-card);
+}
+
+.fab-hint-btn.disabled {
+    opacity: 0.5;
 }
 
 .hint-badge-counter {
@@ -500,7 +550,7 @@ html, body {
 }
 
 /* ==========================================================================
-   4. MODALS & POPUPS
+   6. MODALS & POPUPS
    ========================================================================== */
 
 .modal-overlay {
@@ -660,14 +710,14 @@ input:checked + .slider:before {
     transform: translateX(20px);
 }
 
-/* Win Modal Specifics */
+/* Win Modal */
 .win-card {
     text-align: center;
 }
 
 .win-stars {
     font-size: 2.2rem;
-    color: var(--star-gold);
+    color: var(--lightbulb-gold);
     letter-spacing: 6px;
     margin: 12px 0;
 }
