@@ -345,6 +345,22 @@ class PipesGameEngine {
                 }
             }
         }
+
+        // Ensure the scrambled board is not in a pre-solved state
+        this.updateFlow();
+        if (this.isCompleted) {
+            for (let r = 0; r < this.rows; r++) {
+                for (let c = 0; c < this.cols; c++) {
+                    const tile = this.grid[r][c];
+                    if (tile.isFlowing && tile.canonicalType !== '+' && tile.canonicalType !== '0') {
+                        tile.rotateCW();
+                        this.updateFlow();
+                        if (!this.isCompleted) break;
+                    }
+                }
+                if (!this.isCompleted) break;
+            }
+        }
     }
 
     saveInitialStateSnapshot() {
@@ -456,14 +472,18 @@ class PipesGameEngine {
         return true;
     }
 
-    rotateTile(r, c, clockwise = true) {
+    rotateTile(r, c, clockwise = true, isUndo = false) {
         if (this.isCompleted) return false;
         const tile = this.grid[r][c];
         if (!tile || tile.isHintLocked) return false;
 
         const rotated = clockwise ? tile.rotateCW() : tile.rotateCCW();
         if (rotated) {
-            this.moves++;
+            if (isUndo) {
+                this.moves = Math.max(0, this.moves - 1);
+            } else {
+                this.moves++;
+            }
             this.updateFlow();
         }
         return rotated;

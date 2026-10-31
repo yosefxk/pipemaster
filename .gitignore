@@ -9,6 +9,8 @@ android/.idea/
 dist/
 *.apk
 *.aab
+*.jks
+*.keystore
 
 # OS & Logs
 .DS_Store

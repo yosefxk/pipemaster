@@ -205,7 +205,7 @@ class PipesApp {
         });
 
         this.dom.btnUndo?.addEventListener('click', () => {
-            this.undoLastMove();
+            this.undoMove();
         });
 
         this.dom.btnRestart?.addEventListener('click', () => {
@@ -358,6 +358,9 @@ class PipesApp {
     }
 
     showScreen(screenId) {
+        if (screenId !== 'screen-game') {
+            this.stopTimer();
+        }
         document.querySelectorAll('.app-screen').forEach(s => s.classList.remove('active'));
         const activeScreen = document.getElementById(screenId);
         if (activeScreen) {
@@ -444,9 +447,16 @@ class PipesApp {
     undoLastMove() {
         if (this.moveHistory.length === 0 || this.engine.isCompleted) return;
         const lastMove = this.moveHistory.pop();
-        this.engine.rotateTile(lastMove.r, lastMove.c, !lastMove.clockwise);
+        this.engine.rotateTile(lastMove.r, lastMove.c, !lastMove.clockwise, true);
         this.sound.playRotateSound();
         this.renderer.updateBoardState(this.dom.boardContainer, this.engine);
+        if (this.engine.isCompleted) {
+            this.handleWin();
+        }
+    }
+
+    undoMove() {
+        this.undoLastMove();
     }
 
     triggerHint() {
@@ -461,6 +471,7 @@ class PipesApp {
 
         const hintResult = this.engine.applyHint();
         if (hintResult) {
+            this.moveHistory = this.moveHistory.filter(m => !(m.r === hintResult.row && m.c === hintResult.col));
             this.sound.playHintSound();
 
             this.settings.hintsAvailable--;

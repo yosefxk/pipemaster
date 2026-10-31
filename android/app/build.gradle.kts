@@ -22,9 +22,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("pipemaster-signing-key.jks")
-            storePassword = "volleyball123"
-            keyAlias = "scoreboard"
-            keyPassword = "volleyball123"
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            keyAlias = System.getenv("KEY_ALIAS") ?: "scoreboard"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: System.getenv("KEYSTORE_PASSWORD") ?: ""
             enableV1Signing = true
             enableV2Signing = true
         }

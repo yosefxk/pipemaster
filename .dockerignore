@@ -1,0 +1,9 @@
+.git
+.github
+android
+*.jks
+*.keystore
+.gradle
+Dockerfile
+docker-compose.yml
+README.md
